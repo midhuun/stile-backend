@@ -8,8 +8,8 @@ const jwt = require('jsonwebtoken')
 const cookieParser = require("cookie-parser");
 const {updateUser,loginUser} = require('./requests/userRequests');
 const {productRequest,uniqueProductRequest,categoryRequest} = require('./requests/ProductRequest');
-const {adminRequest} = require('./requests/adminrequests');
-const { deleteRequest } = require("./requests/deleterequest");
+const {adminRequest} = require('./requests/adminRequests');
+const { deleteRequest } = require("./requests/deleteRequest");
 const { UserModel } = require("./model/UserModel");
 const { userAuth } = require("./middleware/userlogin");
 
