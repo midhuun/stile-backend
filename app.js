@@ -20,6 +20,9 @@ const port = process.env.PORT || 3000;
 console.log(port)
 const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
 app.post("/user/login",loginUser);
+app.get("/",(req,res)=>{
+    res.send("Nodejs Running")
+})
 app.post("/delete/:field");
 app.patch("/user/update",updateUser);
 app.post("/admin/create/:field",adminRequest);
