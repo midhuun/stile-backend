@@ -21,7 +21,7 @@ console.log(port)
 const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
 app.post("/user/login",loginUser);
 app.get("/",(req,res)=>{
-    res.send("Nodejs Running")
+    res.send("Nodejs Running    ")
 })
 app.post("/delete/:field");
 app.patch("/user/update",updateUser);
