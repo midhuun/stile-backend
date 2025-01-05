@@ -19,6 +19,7 @@ const adminRequest = async(req,res)=>{
     }
     else if(params.field ==='subCategory'){
         const subCategory = await new SubCategoryModel({...req.body,slug});
+        console.log(subCategory)
         await subCategory.save();
         res.send({message:"SubCategory added Accessfully"});
     }

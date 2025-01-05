@@ -14,27 +14,112 @@ const { UserModel } = require("./model/UserModel");
 const { userAuth } = require("./middleware/userlogin");
 
 env.config();
-app.use(cors({origin:'http://localhost:5173',credentials:true}));
+const allowedOrigins = [
+    'http://localhost:5173',
+    'https://admin-stile-12333.vercel.app/',
+    'http://another-allowed-origin.com'
+  ];
+  
+  app.use(cors({
+    origin: (origin, callback) => {
+      if (allowedOrigins.includes(origin) || !origin) {
+        // Allow requests with no origin (e.g., mobile apps, Postman)
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'), false);
+      }
+    },
+    credentials: true
+  }));
+  
 app.use(cookieParser());
 app.use(express.json());
+
+
 const port = process.env.PORT || 3000;
-console.log(port)
 const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
+
+
 app.post("/user/login",loginUser);
+
+
 app.get("/",(req,res)=>{
     res.send("Nodejs Running    ")
 })
+
+
 app.post("/delete/:field");
+
 app.patch("/user/update",updateUser);
+
 app.post("/admin/create/:field",adminRequest);
+
 app.patch("/admin/update/:field",async(req,res)=>{
     const {field} = req.params;
     if (field === 'category'){
         try{
-        const {name,imageURl,_id} = req.body;
-        const data = await CategoryModel.findByIdAndUpdate({_id:_id},{name:name,image:imageURl},{ new: true, runValidators: true })
+        const {name,imageURl,_id,startingPrice} = req.body;
+        const data = await CategoryModel.findByIdAndUpdate({_id:_id},{name:name,image:imageURl,startingPrice:startingPrice},{ new: true, runValidators: true })
         console.log(data)
         res.send(data);
+        }
+        catch(err){
+            console.log(err);
+        }
+    }
+    if (field === 'subcategory'){
+        try{
+        const {name,imageURl,_id,} = req.body;
+        const data = await CategoryModel.findByIdAndUpdate({_id:_id},req.body,{ new: true, runValidators: true })
+        console.log(data)
+        res.send(data);
+        }
+        catch(err){
+            console.log(err);
+        }
+    }
+    if (field === 'product'){
+        try{
+        const {_id} = req.body;
+        const data = await CategoryModel.findByIdAndUpdate({_id:_id},req.body,{ new: true, runValidators: true })
+        console.log(data)
+        res.send(data);
+        }
+        catch(err){
+            console.log(err);
+        }
+    }
+})
+app.delete("/admin/delete/:field", async(req,res)=>{
+    const {field} = req.params;
+    if (field === 'category'){
+        try{
+            const {_id} = req.body;
+            console.log(req.body)
+            const data = await CategoryModel.findByIdAndDelete(_id);
+            res.send(data);
+        }
+        catch(err){
+            console.log(err);
+        }
+    }
+    if (field === 'subcategory'){
+        try{
+            const {_id} = req.body;
+            console.log(req.body)
+            const data = await SubCategoryModel.findByIdAndDelete(_id);
+            res.send(data);
+        }
+        catch(err){
+            console.log(err);
+        }
+    }
+    if (field === 'product'){
+        try{
+            const {_id} = req.body;
+            console.log(req.body)
+            const data = await ProductModel.findByIdAndDelete(_id);
+            res.send(data);
         }
         catch(err){
             console.log(err);
