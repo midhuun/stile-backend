@@ -42,7 +42,7 @@ app.patch("/admin/update/:field",async(req,res)=>{
     if (field === 'category'){
         try{
         const {name,imageURl,_id,startingPrice} = req.body;
-        const data = await CategoryModel.findByIdAndUpdate({_id:_id},{name:name,image:imageURl,startingPrice:startingPrice},{ new: true, runValidators: true })
+        const data = await CategoryModel.findByIdAndUpdate({_id:_id},req.body,{ new: true, runValidators: true })
         console.log(data)
         res.send(data);
         }
