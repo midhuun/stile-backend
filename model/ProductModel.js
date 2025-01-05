@@ -110,7 +110,6 @@ SubcategorySchema.pre("save", async function (next) {
 
 const SubCategoryModel = mongoose.model("SubCategory", SubcategorySchema);
 
-// Product Schema
 const ProductSchema = new Schema(
   {
     name: {
@@ -144,11 +143,19 @@ const ProductSchema = new Schema(
     discountedPrice: {
       type: Number,
     },
-    stock: {
-      type: Number,
-      required: true,
-      min: [0, "Stock cannot be less than 0"],
-    },
+    sizes: [
+      {
+        size: {
+          type: String,
+          required: true,
+        },
+        stock: {
+          type: Number,
+          required: true,
+          min: [0, "Stock cannot be less than 0"],
+        },
+      },
+    ],
     category: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Category",
@@ -177,7 +184,7 @@ const ProductSchema = new Schema(
   { timestamps: true }
 );
 
-// Update slug on name change
+// Update slug on name change and calculate discounted price
 ProductSchema.pre("save", function (next) {
   if (this.isModified("name")) {
     this.slug = slugify(this.name, { lower: true, strict: true });
@@ -186,6 +193,21 @@ ProductSchema.pre("save", function (next) {
     this.discountedPrice = this.price - (this.price * this.discount) / 100;
   }
   next();
+});
+
+// Update the parent subcategory with the product reference
+ProductSchema.pre("save", async function (next) {
+  try {
+    const subcategory = await mongoose.model("SubCategory").findById(this.subcategory);
+    if (!subcategory) {
+      throw new Error("Subcategory not found");
+    } else {
+      await subcategory.updateOne({ $push: { products: this._id } });
+    }
+    next();
+  } catch (err) {
+    next(err);
+  }
 });
 
 // Update the parent subcategory with the product reference
