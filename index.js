@@ -14,24 +14,7 @@ const { UserModel } = require("./model/UserModel");
 const { userAuth } = require("./middleware/userlogin");
 
 env.config();
-const allowedOrigins = [
-    'http://localhost:5173',
-    'https://admin-stile-12333.vercel.app/',
-    'http://another-allowed-origin.com'
-  ];
-  
-  app.use(cors({
-    origin: (origin, callback) => {
-      if (allowedOrigins.includes(origin) || !origin) {
-        // Allow requests with no origin (e.g., mobile apps, Postman)
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'), false);
-      }
-    },
-    credentials: true
-  }));
-  
+app.use(cors({origin:['http://localhost:5173','https://admin-stile-12333.vercel.app'],credentials:true}));
 app.use(cookieParser());
 app.use(express.json());
 
