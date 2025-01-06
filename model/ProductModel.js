@@ -73,6 +73,14 @@ const SubcategorySchema = new Schema(
         ref: "Product",
       },
     ],
+    sizeurl:{
+      type: String,
+      validate: (value) => {
+        if (!validator.isURL(value)) {
+          throw new Error("Image URL is not valid");
+        }
+      },
+    },
     image: {
       type: String,
       validate: (value) => {
