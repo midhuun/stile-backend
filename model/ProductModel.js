@@ -190,7 +190,7 @@ ProductSchema.pre("save", function (next) {
     this.slug = slugify(this.name, { lower: true, strict: true });
   }
   if (!this.discountedPrice || this.discountedPrice === 0) {
-    this.discountedPrice = this.price - (this.price * this.discount) / 100;
+    this.discountedPrice = Math.floor(this.price - (this.price * this.discount) / 100);
   }
   next();
 });
