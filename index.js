@@ -22,14 +22,23 @@ app.use(express.json());
 const port = process.env.PORT || 3000;
 const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
 
-app.get("/user",userAuth,async(req,res)=>{
-    const user = await UserModel.findById(req.body._id);
-    if(user){
-        res.send(user);
-    }
-    else{
-        res.status(404).send({message:"User not found"})
-    }  
+app.get("/user", async(req,res)=>{
+     try{
+           const {token} = req.cookies;
+           console.log(token);
+           const decoded =jwt.verify(token,SECRET);
+           console.log(decoded);
+           const user = await UserModel.find({_id:decoded.id});
+           if(!user){
+            return res.status(401).send({message:"User not found"});
+           }
+           else{
+                res.status(200).send({message:"User found",user:user});
+           }
+        }
+        catch(err){
+            res.status(401).send({message:"User not authenticated"});
+        }
 })
 app.post("/user/login",loginUser);
 
