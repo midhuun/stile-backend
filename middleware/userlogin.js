@@ -6,7 +6,8 @@ const { UserModel } = require('../model/UserModel');
 const app = express();
 env.config();
 const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
-app.use(cors({origin:"http://localhost:5173",credentials:true}));
+const origin = process.env.ORIGIN || 'http://localhost:5173';
+app.use(cors({origin:origin,credentials:true}));
 const userAuth = async(req,res,next)=>{
     try{
        const {token} = req.cookies;

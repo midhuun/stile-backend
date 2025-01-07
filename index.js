@@ -22,7 +22,15 @@ app.use(express.json());
 const port = process.env.PORT || 3000;
 const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
 
-
+app.get("/user",userAuth,async(req,res)=>{
+    const user = await UserModel.findById(req.body._id);
+    if(user){
+        res.send(user);
+    }
+    else{
+        res.status(404).send({message:"User not found"})
+    }  
+})
 app.post("/user/login",loginUser);
 
 
