@@ -32,7 +32,7 @@ const loginUser = async(req,res)=>{
         const user = await new UserModel({phone});
         await user.save();
         const token = jwt.sign({id:user._id},SECRET);
-        res.cookie("token",token);
+        res.cookie("token",token,{samsite:"none"});
         console.log(user)
         res.status(200).send({message:"User Created",userexists:false})
     }
