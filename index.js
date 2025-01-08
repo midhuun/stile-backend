@@ -12,6 +12,7 @@ const {adminRequest} = require('./requests/adminrequests');
 const { deleteRequest } = require("./requests/deleteRequest");
 const { UserModel } = require("./model/UserModel");
 const { userAuth } = require("./middleware/userlogin");
+const { BannerModel } = require("./model/BannerModel");
 
 env.config();
 app.use(cors({origin:['http://localhost:5173','https://admin-stile-12333.vercel.app'],credentials:true}));
@@ -27,7 +28,7 @@ app.get("/user", async(req,res)=>{
            const {token} = req.cookies;
            console.log(token);
            const decoded =jwt.verify(token,SECRET);
-           console.log(decoded);
+           console.log("decoded",decoded);
            const user = await UserModel.find({_id:decoded.id});
            if(!user){
             return res.status(401).send({message:"User not found"});
@@ -35,6 +36,7 @@ app.get("/user", async(req,res)=>{
            else{
                 res.status(200).send({message:"User found",user:user});
            }
+          
         }
         catch(err){
             res.status(401).send({message:"User not authenticated"});
@@ -47,8 +49,6 @@ app.get("/",(req,res)=>{
     res.send("Nodejs Running    ")
 })
 
-
-app.post("/delete/:field");
 
 app.patch("/user/update",updateUser);
 
@@ -107,7 +107,11 @@ app.delete("/admin/delete/:field", async(req,res)=>{
         try{
             const {_id} = req.body;
             console.log(req.body)
-            const data = await SubCategoryModel.findByIdAndDelete(_id);
+            const subcategory = await SubCategoryModel.findByIdAndDelete(_id);
+            // const category = await CategoryModel.findById(product.sub);
+            // if (category) {
+            //   await category.updateOne({ $pull: { subcategories: subcategory._id } });
+            // }
             res.send(data);
         }
         catch(err){
@@ -118,8 +122,12 @@ app.delete("/admin/delete/:field", async(req,res)=>{
         try{
             const {_id} = req.body;
             console.log(req.body)
-            const data = await ProductModel.findByIdAndDelete(_id);
-            res.send(data);
+            const product = await ProductModel.findByIdAndDelete(_id);
+            // const subcategory = await SubCategoryModel.findById(product.subcategory);
+            // if (subcategory) {
+            //   await subcategory.updateOne({ $pull: { products: product._id } });
+            // }
+            res.send({ message: "Product deleted successfully" });
         }
         catch(err){
             console.log(err);
@@ -135,6 +143,38 @@ app.get("/category/:name",async(req,res)=>{
     }
     catch(err){
         res.status(400).send({message:"Error Finding Category"})
+    }
+})
+app.get("/banner",async(req,res)=>{
+
+    try{
+        // const createModel = await BannerModel.create({image:"https://thesagio.com/cdn/shop/files/HOME-02.png?v=1726319330&width=1920",title:"Shop Your Amazing Products"});
+        // res.send(createModel);
+        const data = await BannerModel.find();
+        res.send(data);
+    }
+    catch(err){
+        res.status(400).send({message:"Error Fetching Banners"})
+    }
+})
+app.post("/banner/create",async(req,res)=>{
+    try{
+        const {name,image} = req.body;
+        const data = await BannerModel.create({title:name,image:image});
+        res.send({message:"Banner Created"});
+    }
+    catch(err){
+        res.status(400).send({message:"Error Creating Banner"})
+    }
+})
+app.delete("/banner/delete",async(req,res)=>{
+    try{
+        const {id} = req.body;
+        const data = await BannerModel.deleteOne({_id:id});
+        res.status(201).send(data);
+    }
+    catch(err){
+        res.status(400).send({message:"Error Creating Banner"})
     }
 })
 app.get("/products/:category",categoryRequest)

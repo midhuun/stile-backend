@@ -23,7 +23,7 @@ const productRequest = async(req,res)=>{
 const uniqueProductRequest = async(req,res)=>{
     const {name} = req.params;
     try{
-        const product = await ProductModel.find({slug:name});
+        const product = await ProductModel.find({slug:name}).populate('subcategory');
         res.send(product);
     }
     catch(err){
