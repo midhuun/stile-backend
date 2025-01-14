@@ -6,7 +6,6 @@ const { UserModel } = require('../model/UserModel');
 const app = express();
 env.config();
 const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
-const origin = 'http://localhost:5173';
 app.use(cors({origin:['http://localhost:5173','https://stile-frontend-9jne.vercel.app','https://stile-12333.vercel.app'],credentials:true}));
 const userAuth = async(req,res,next)=>{
     const {token} = req.cookies;
