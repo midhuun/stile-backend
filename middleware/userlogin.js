@@ -9,8 +9,9 @@ const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
 const origin = process.env.ORIGIN || 'http://localhost:5173';
 app.use(cors({origin:origin,credentials:true}));
 const userAuth = async(req,res,next)=>{
+    const {token} = req.cookies;
+    if(!token) return res.status(401).send({message:"Unauthorized"})
     try{
-       const {token} = req.cookies;
        const decoded =jwt.verify(token,SECRET);
        console.log(decoded);
        const user = await UserModel.find({_id:decoded.id});

@@ -15,7 +15,7 @@ const { userAuth } = require("./middleware/userlogin");
 const { BannerModel } = require("./model/BannerModel");
 
 env.config();
-app.use(cors({origin:['http://localhost:5173','https://admin-stile-12333.vercel.app'],credentials:true}));
+app.use(cors({origin:['http://localhost:5173','https://admin-stile-12333.vercel.app','https://stile-12333.vercel.app'],credentials:true}));
 app.use(cookieParser());
 app.use(express.json());
 
@@ -26,10 +26,10 @@ const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
 app.get("/user", async(req,res)=>{
      try{
            const {token} = req.cookies;
-           console.log(token);
+
            const decoded =jwt.verify(token,SECRET);
-           console.log("decoded",decoded);
-           const user = await UserModel.find({_id:decoded.id});
+        
+           const user = await UserModel.findOne({_id:decoded.id});
            if(!user){
             return res.status(401).send({message:"User not found"});
            }
@@ -44,12 +44,136 @@ app.get("/user", async(req,res)=>{
 })
 app.post("/user/login",loginUser);
 
-
 app.get("/",(req,res)=>{
     res.send("Nodejs Running    ")
 })
 
 
+// Cart API
+app.post('/user/addToCart',userAuth,async(req,res)=>{
+    try{
+        const {token} = req.cookies;
+        const product = req.body.productdata;
+        const decoded = jwt.verify(token,SECRET);
+        const user = await UserModel.findOne({_id:decoded.id});
+        const cartItem = user.cart.find((item)=>item.product.toString().includes(product._id) && item.selectedSize === req.body.selectedSize);
+     
+        if(cartItem){
+            cartItem.quantity += 1;
+        }
+        else{
+            user.cart.push({product:product._id,quantity:1,selectedSize:req.body.selectedSize});
+        }        
+        await user.save();
+        res.status(200).send({message:"Item Added to Cart"});
+
+        
+    }
+    catch(err){
+        console.log(err);
+    }
+})
+app.get('/user/favourites',userAuth,async(req,res)=>{
+    try{
+        const {token} = req.cookies;
+        const decoded = jwt.verify(token,SECRET);
+        const user = await UserModel.findOne({_id:decoded.id}).populate({path:"favourites"});
+      
+        res.send({favourites:user.favourites});
+    }
+    catch(err){
+        console.log(err);
+    }
+})
+app.post('/user/addToFavourites',userAuth,async(req,res)=>{
+    try{
+        const {token} = req.cookies;
+       
+        const {id} = req.body;
+        const decoded = jwt.verify(token,SECRET);
+        const user = await UserModel.findOne({_id:decoded.id});
+        const favItem = user.favourites.find((item)=>item.toString().includes(id));
+        if(favItem){
+            res.send({message:"Item Already Exists in Favourites"});
+            }
+            else{
+                user.favourites.push(id);
+            }   
+        await user.save();
+        res.status(200).send({message:"Item Added to Favourites"});
+    }
+    catch(err){
+        console.log(err);
+    }
+})
+app.post('/user/removeFromFavourites',userAuth,async(req,res)=>{
+    try{
+        const {token} = req.cookies;
+        const {productId} = req.body;
+        const decoded = jwt.verify(token,SECRET);
+        const user = await UserModel.findOne({_id:decoded.id});
+        user.favourites.pull(productId);
+        await user.save();
+        res.status(200).send({message:"Item Removed from Favourites"});
+    }
+    catch(err){
+        console.log(err);
+    }
+});
+app.post('/user/removeFromCart',userAuth,async(req,res)=>{
+    try{
+        const {token} = req.cookies;
+        const product = req.body.productdata;
+        const decoded = jwt.verify(token,SECRET);
+        const user = await UserModel.findOne({_id:decoded.id});
+        const cartItem = user.cart.find((item)=>item.product.toString().includes(product._id) && item.selectedSize === req.body.selectedSize);
+        console.log(cartItem);
+        if(cartItem){
+            if(cartItem.quantity === 1 ){
+                user.cart.pull({product:product._id,selectedSize:req.body.selectedSize});
+            }
+            else{
+            cartItem.quantity -= 1;
+            }
+        }
+        else{
+            res.status(400).send({message:"Item not found in cart"});
+        }        
+        await user.save();
+        res.status(200).send({message:"Item Added to Cart"});
+
+        
+    }
+    catch(err){
+        console.log(err);
+    }
+});
+app.post('/user/deleteFromCart',userAuth,async(req,res)=>{
+    try{
+        const {token} = req.cookies;
+        const productdata = req.body.productdata;
+        const decoded = jwt.verify(token,SECRET);
+        const user = await UserModel.findOne({_id:decoded.id})
+        user.cart.pull({product:productdata,selectedSize:req.body.selectedSize}) 
+        console.log(productdata._id)
+       await user.save();
+       res.send({message:"Deleted"})
+    }
+    catch(err){
+        console.log(err);
+    }
+});
+app.get("/user/cart",async(req,res)=>{
+    try{
+        const {token} = req.cookies;
+        const decoded = jwt.verify(token,SECRET);
+        const user = await UserModel.findOne({_id:decoded.id}).populate({path:"cart.product"});
+        res.send({cart:user.cart});
+    }
+    catch(err){
+        console.log(err);
+    }
+})
 app.patch("/user/update",updateUser);
 
 app.post("/admin/create/:field",adminRequest);
@@ -136,10 +260,11 @@ app.delete("/admin/delete/:field", async(req,res)=>{
 })
 app.get("/category/:name",async(req,res)=>{
     const name = req.params.name;
+    console.log(name)
     try{
-       const category =await CategoryModel.findOne({slug:name}).populate({path:'subcategories',populate:{path:'products',model:'Product'}});
-       const products = await ProductModel.find({category:category._id})
-       res.send({category:category,products:products})
+       const subcategory =await SubCategoryModel.findOne({slug:name}).populate({path:'products',model:'Product'});
+       const products = await ProductModel.find({subcategory:subcategory._id})
+       res.send({subcategory:subcategory,products:products});
     }
     catch(err){
         res.status(400).send({message:"Error Finding Category"})
@@ -236,30 +361,6 @@ app.post("/login",async (req,res)=>{
         res.send({message:"User Found",token:token})
     }
 })
-// app.get("/api/cart",userAuth, async(req,res)=>{
-//     const {token} = req.cookies;
-//     const decoded = jwt.verify(token,SECRET);
-//     try{
-//       const user = await UserModel.find({_id:decoded.id})
-//       res.send({message:user.cart})
-//     }
-//     catch{
-//         res.status(500).send({message:"Error Occured"})
-//     }
-// })
-// app.post("/api/addToCart",userAuth,async(req,res)=>{
-//     const {token} = req.cookies;
-//     const item = req.item;
-//     const decoded = jwt.verify(token,SECRET);
-//     try{
-//         const user = await UserModel.find({_id:decoded.id});
-        
-//         res.json({message:user})
-//     }
-//     catch(err){
-//         console.log(err)
-//     }
-// })
 app.get("/logout",(req,res)=>{
     try{
     console.log("cookie",req.cookies)
@@ -271,20 +372,7 @@ app.get("/logout",(req,res)=>{
         res.status(404).send("Error logging out")
     }
 })
-app.post("/api/addToCart",async(req,res)=>{
-    const cart = req.body;
-    console.log(cart);
-    const {token} = req.cookies;
-    const decoded = jwt.verify(token,SECRET);
-    try{ 
-        await UserModel.updateOne({_id:decoded.id},{cart:cart});
-        
-        res.send({message:"Item Added to Cart"})
-    }
-    catch(err){
-        res.send("Error adding to cart");
-    }
-})
+
 connectTODB().then(()=>{
     console.log("DB connected successfully")
     app.listen(port,()=>{
