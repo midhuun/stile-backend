@@ -13,7 +13,6 @@ const { deleteRequest } = require("./requests/deleteRequest");
 const { UserModel } = require("./model/UserModel");
 const { userAuth } = require("./middleware/userlogin");
 const { BannerModel } = require("./model/BannerModel");
-
 env.config();
 app.use(cors({origin:['http://localhost:5173','https://stile-frontend-9jne.vercel.app','https://stile-12333.vercel.app'],credentials:true}));
 app.use(cookieParser()); 
@@ -349,6 +348,7 @@ app.post("/login",async (req,res)=>{
         const newUser = await UserModel.create({phone:phone});
         console.log(newUser);
         const token = jwt.sign({id:newUser._id},SECRET);
+        
         res.cookie('token',token);
         console.log(newUser);
         res.send({message:"User Created",token:token})
