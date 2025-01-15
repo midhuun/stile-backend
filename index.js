@@ -14,7 +14,7 @@ const { UserModel } = require("./model/UserModel");
 const { userAuth } = require("./middleware/userlogin");
 const { BannerModel } = require("./model/BannerModel");
 env.config();
-app.use(cors({origin:['http://localhost:5173','https://stile-frontend-9jne.vercel.app','https://stile-backend-gnqp.vercel.app','https://stile-12333.vercel.app'],credentials:true}));
+app.use(cors({origin:['http://localhost:5173','https://admin-stile-12333.vercel.app','https://stile-backend-gnqp.vercel.app','https://stile-12333.vercel.app'],credentials:true}));
 app.use(cookieParser()); 
 app.use(express.json());
 
