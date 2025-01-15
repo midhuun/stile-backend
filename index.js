@@ -25,7 +25,6 @@ const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
 app.get("/user", async(req,res)=>{
      try{
            const {token} = req.cookies;
-
            const decoded =jwt.verify(token,SECRET);
         
            const user = await UserModel.findOne({_id:decoded.id});
@@ -162,7 +161,7 @@ app.post('/user/deleteFromCart',userAuth,async(req,res)=>{
         console.log(err);
     }
 });
-app.get("/user/cart",async(req,res)=>{
+app.get("/user/cart",userAuth,async(req,res)=>{
     try{
         const {token} = req.cookies;
         const decoded = jwt.verify(token,SECRET);
@@ -348,7 +347,7 @@ app.post("/login",async (req,res)=>{
         const newUser = await UserModel.create({phone:phone});
         console.log(newUser);
         const token = jwt.sign({id:newUser._id},SECRET);
-        
+
         res.cookie('token',token);
         console.log(newUser);
         res.send({message:"User Created",token:token})
