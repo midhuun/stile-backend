@@ -348,7 +348,7 @@ app.post("/login",async (req,res)=>{
         console.log(newUser);
         const token = jwt.sign({id:newUser._id},SECRET);
 
-        res.cookie('token',token,{secure:true});
+        res.cookie('token',token,{secure:true,sameSite:'none'});
         console.log(newUser);
         res.send({message:"User Created",token:token})
     }
@@ -356,7 +356,7 @@ app.post("/login",async (req,res)=>{
         const user = await UserModel.find({phone:phone});
         console.log(user);
         const token = jwt.sign({id:user._id},SECRET);
-        res.cookie('token',token,{secure:true});
+        res.cookie('token',token,{secure:true,sameSite:'none'});
         res.send({message:"User Found",token:token})
     }
 })
@@ -364,7 +364,7 @@ app.get("/logout",(req,res)=>{
     try{
     console.log("cookie",req.cookies)
     res.clearCookie('token', { path: '/', domain: 'localhost' });
-    res.cookie("token","",{secure:true});
+    res.cookie("token","",{secure:true,sameSite:'none'});
     res.status(200).send({message:"Logged out Successfully"})
     }
     catch(err){

@@ -32,7 +32,7 @@ const loginUser = async(req,res)=>{
         const user = await new UserModel({phone});
         await user.save();
         const token = jwt.sign({id:user._id},SECRET);
-        res.cookie("token",token,{secure:true});
+        res.cookie("token",token,{secure:true,sameSite:'none'});
         console.log(user)
         res.status(200).send({message:"User Created",userexists:false})
     }
@@ -40,7 +40,8 @@ const loginUser = async(req,res)=>{
          const token =await jwt.sign({id:isuser._id},SECRET);
          res.cookie("token", token, {
             maxAge: 3 * 24 * 60 * 60 * 1000,
-            secure:true
+            secure:true,
+            sameSite:'none'
           });
         res.status(200).send({message:"User Exists",userexists:true});
     }
