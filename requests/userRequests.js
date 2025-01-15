@@ -38,7 +38,9 @@ const loginUser = async(req,res)=>{
     }
     else{
          const token =await jwt.sign({id:isuser._id},SECRET);
-         res.cookie("token",token);
+         res.cookie("token", token, {
+            maxAge: 3 * 24 * 60 * 60 * 1000,
+          });
         res.status(200).send({message:"User Exists",userexists:true});
     }
     }
