@@ -63,7 +63,7 @@ app.post('/user/addToCart',userAuth,async(req,res)=>{
             user.cart.push({product:product._id,quantity:1,selectedSize:req.body.selectedSize});
         }        
         await user.save();
-        res.status(200).send({message:"Item Added to Cart"});
+        res.status(201).send({message:"Item Added to Cart"});
 
         
     }
@@ -98,7 +98,7 @@ app.post('/user/addToFavourites',userAuth,async(req,res)=>{
                 user.favourites.push(id);
             }   
         await user.save();
-        res.status(200).send({message:"Item Added to Favourites"});
+        res.status(201).send({message:"Item Added to Favourites"});
     }
     catch(err){
         console.log(err);
@@ -112,7 +112,7 @@ app.post('/user/removeFromFavourites',userAuth,async(req,res)=>{
         const user = await UserModel.findOne({_id:decoded.id});
         user.favourites.pull(productId);
         await user.save();
-        res.status(200).send({message:"Item Removed from Favourites"});
+        res.status(201).send({message:"Item Removed from Favourites"});
     }
     catch(err){
         console.log(err);
@@ -138,7 +138,7 @@ app.post('/user/removeFromCart',userAuth,async(req,res)=>{
             res.status(400).send({message:"Item not found in cart"});
         }        
         await user.save();
-        res.status(200).send({message:"Item Added to Cart"});
+        res.status(201).send({message:"Item Deleted from the Cart"});
 
         
     }
@@ -155,7 +155,7 @@ app.post('/user/deleteFromCart',userAuth,async(req,res)=>{
         user.cart.pull({product:productdata,selectedSize:req.body.selectedSize}) 
         console.log(productdata._id)
        await user.save();
-       res.send({message:"Deleted"})
+       res.status(204).send({message:"Deleted"})
     }
     catch(err){
         console.log(err);
@@ -315,63 +315,6 @@ app.get("/api/cart",userAuth, async(req,res)=>{
         res.status(500).send({message:"Error Occured"})
     }
 })
-app.post("/addToCart",userAuth,async(req,res)=>{
-    const {token} = req.cookies;
-    const {product} = req.body;
-    const decoded = jwt.verify(token,SECRET);
-
-    try{
-        const user = await UserModel.findOne({_id:decoded.id});
-        console.log("user",user);
-        // const existingItem = user.cart.find((item)=>item._id === product._id);
-        // if(existingItem){
-        //     res.send({message:"Item Already Exists In Cart"})
-        // }
-        // else{
-        //     user.cart.push({...product,quantity:1});
-        //     await user.save();
-        //     res.send({message:"Item Added"})
-        // }
-      }
-      catch(err){
-        console.log(err)
-          res.status(500).send({message:"Error Occured"})
-
-      }
-})
-app.post("/login",async (req,res)=>{
-    const {phone,password} = req.body;
-    const user = await UserModel.findOne({phone:phone});
-    console.log(phone)
-    if(!user){
-        const newUser = await UserModel.create({phone:phone});
-        console.log(newUser);
-        const token = jwt.sign({id:newUser._id},SECRET);
-
-        res.cookie('token',token,{secure:true,sameSite:'none'});
-        console.log(newUser);
-        res.send({message:"User Created",token:token})
-    }
-    else{
-        const user = await UserModel.find({phone:phone});
-        console.log(user);
-        const token = jwt.sign({id:user._id},SECRET);
-        res.cookie('token',token,{secure:true,sameSite:'none'});
-        res.send({message:"User Found",token:token})
-    }
-})
-app.get("/logout",(req,res)=>{
-    try{
-    console.log("cookie",req.cookies)
-    res.clearCookie('token', { path: '/', domain: 'localhost' });
-    res.cookie("token","",{secure:true,sameSite:'none'});
-    res.status(200).send({message:"Logged out Successfully"})
-    }
-    catch(err){
-        res.status(404).send("Error logging out")
-    }
-})
-
 connectTODB().then(()=>{
     console.log("DB connected successfully")
     app.listen(port,()=>{
