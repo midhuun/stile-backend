@@ -6,7 +6,7 @@ const {connectTODB}  = require('./config/database');
 const {ProductModel,SubCategoryModel,CategoryModel} = require('./model/ProductModel');
 const jwt = require('jsonwebtoken')
 const cookieParser = require("cookie-parser");
-const {updateUser,loginUser} = require('./requests/userRequests');
+const {updateUser,loginUser, logoutUser} = require('./requests/userRequests');
 const {productRequest,uniqueProductRequest,categoryRequest} = require('./requests/ProductRequest');
 const {adminRequest} = require('./requests/adminrequests');
 const { deleteRequest } = require("./requests/deleteRequest");
@@ -41,7 +41,7 @@ app.get("/user", async(req,res)=>{
         }
 })
 app.post("/user/login",loginUser);
-
+app.post("/user/logout",logoutUser)
 app.get("/",(req,res)=>{
     res.send("Nodejs Running    ")
 })

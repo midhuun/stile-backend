@@ -24,6 +24,16 @@ const updateUser = async(req,res)=>{
         res.status(401).send({err:err});
     }
 }
+const logoutUser = async(req,res)=>{
+    try{
+        
+        res.clearCookie('token');
+        res.send({message:'logged out successfully'});
+        }
+        catch(err){
+            res.status(401).send({err:err});
+        }
+}
 const loginUser = async(req,res)=>{
     try{
     const {phone} = req.body;
@@ -52,4 +62,4 @@ const loginUser = async(req,res)=>{
     }
     
 }
-module.exports ={updateUser,loginUser}
+module.exports ={updateUser,loginUser,logoutUser}
