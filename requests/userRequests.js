@@ -28,9 +28,7 @@ const logoutUser = async(req,res)=>{
 
     console.log(req.cookies);
     try{
-        
-        res.cookie('token',{maxAge:Date(0)});
-        res.clearCookie("");
+        res.cookie('token', '', { path: '/', maxAge: 0 });
         res.send({message:'Log out Successfull'});
         }
         catch(err){
