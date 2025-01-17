@@ -6,7 +6,7 @@ const { UserModel } = require('../model/UserModel');
 const app = express();
 env.config();
 const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
-app.use(cors({origin:['http://localhost:5173','https://www.stilesagio.com','https://stile-frontend-9jne.vercel.app','https://stile-12333.vercel.app'],credentials:true}));
+app.use(cors({origin:['http://localhost:5173','https://www.stilesagio.com','https://stile-frontend-9jne.vercel.app','https://stile-12333.vercel.app','https://admin-stile-12333.vercel.app'],credentials:true}));
 const userAuth = async(req,res,next)=>{
     const {token} = req.cookies;
     if(!token) return res.status(401).send({message:"Unauthorized"})
