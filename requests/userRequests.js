@@ -25,9 +25,9 @@ const updateUser = async(req,res)=>{
     }
 }
 const logoutUser = async(req,res)=>{
+    console.log(req.cookies);
     try{
-        
-        res.clearCookie('token');
+        res.cookie('token',{maxAge:Date.now()});
         res.send({message:'logged out successfully'});
         }
         catch(err){
