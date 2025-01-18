@@ -187,6 +187,7 @@ app.patch("/admin/update/:field",async(req,res)=>{
         }
         catch(err){
             console.log(err);
+            res.status(400).send({message:"Error"})
         }
     }
     if (field === 'subcategory'){
@@ -198,6 +199,7 @@ app.patch("/admin/update/:field",async(req,res)=>{
         }
         catch(err){
             console.log(err);
+            res.status(400).send({message:"Error"})
         }
     }
     if (field === 'product'){
@@ -209,6 +211,7 @@ app.patch("/admin/update/:field",async(req,res)=>{
         }
         catch(err){
             console.log(err);
+            res.status(400).send({message:"Error"})
         }
     }
 })
@@ -223,6 +226,7 @@ app.delete("/admin/delete/:field", async(req,res)=>{
         }
         catch(err){
             console.log(err);
+            res.status(400).send({message:"Error"})
         }
     }
     if (field === 'subcategory'){
@@ -238,6 +242,7 @@ app.delete("/admin/delete/:field", async(req,res)=>{
         }
         catch(err){
             console.log(err);
+            res.status(400).send({message:"Error"})
         }
     }
     if (field === 'product'){
@@ -245,6 +250,7 @@ app.delete("/admin/delete/:field", async(req,res)=>{
             const {_id} = req.body;
             console.log(req.body)
             const product = await ProductModel.findByIdAndDelete(_id);
+            res.status(400).send({message:"Error"})
             // const subcategory = await SubCategoryModel.findById(product.subcategory);
             // if (subcategory) {
             //   await subcategory.updateOne({ $pull: { products: product._id } });
