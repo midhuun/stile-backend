@@ -161,6 +161,7 @@ app.patch("/user/update",updateUser);
 app.post("/user/order",async(req,res)=>{
     try{
         const {token} = req.cookies;
+        console.log(req.cookies);
         console.log(token);
         const decoded = jwt.verify(token,SECRET);
         const user = await UserModel.findOne({_id:decoded.id});
@@ -176,6 +177,7 @@ app.post("/user/order",async(req,res)=>{
             }
             catch(err){
                 console.log(err);
+                res.status(400).send({message:err})
             }
 });
 
