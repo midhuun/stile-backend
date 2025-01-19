@@ -11,6 +11,10 @@ const orderProductSchema = new mongoose.Schema({
     required: true,
     min: 1,
   },
+  selectedSize:{
+    type:String,
+    required:true
+  },
   totalPrice: {
     type: Number,
   },
@@ -37,7 +41,7 @@ const orderSchema = new mongoose.Schema({
     required: true,
   },
   address:{
-    type:String,
+    type:Object,
     required:true
   },
   pincode:{
