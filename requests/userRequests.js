@@ -10,6 +10,24 @@ app.use(cors({origin:['http://localhost:5173','https://www.stilesagio.com','http
 app.use(cookieParser());
 app.use(express.json());
 const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
+const getUser = async(req,res)=>{
+     try{
+           const {token} = req.cookies;
+           const decoded =jwt.verify(token,SECRET);
+        
+           const user = await UserModel.findOne({_id:decoded.id});
+           if(!user){
+            return res.status(401).send({message:"User not found"});
+           }
+           else{
+                res.status(200).send({message:"User found",user:user});
+           }
+          
+        }
+        catch(err){
+            res.status(401).send({message:"User not authenticated"});
+        }
+}
 const updateUser = async(req,res)=>{
     try{
     const body = req.body;
@@ -63,4 +81,4 @@ const loginUser = async(req,res)=>{
     }
     
 }
-module.exports ={updateUser,loginUser,logoutUser}
+module.exports ={updateUser,loginUser,logoutUser,getUser}

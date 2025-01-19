@@ -6,13 +6,15 @@ const {connectTODB}  = require('./config/database');
 const {ProductModel,SubCategoryModel,CategoryModel} = require('./model/ProductModel');
 const jwt = require('jsonwebtoken')
 const cookieParser = require("cookie-parser");
-const {updateUser,loginUser, logoutUser} = require('./requests/userRequests');
+const {updateUser,loginUser, logoutUser, getUser} = require('./requests/userRequests');
 const {productRequest,uniqueProductRequest,categoryRequest} = require('./requests/ProductRequest');
 const {adminRequest} = require('./requests/adminrequests');
 const { deleteRequest } = require("./requests/deleteRequest");
 const { UserModel } = require("./model/UserModel");
 const { userAuth } = require("./middleware/userlogin");
 const { BannerModel } = require("./model/BannerModel");
+
+
 env.config();
 app.use(cors({origin:['http://localhost:5173','https://www.stilesagio.com','https://admin-stile-12333.vercel.app','https://stile-backend-gnqp.vercel.app','https://stile-12333.vercel.app','https://stile-frontend-9jne.vercel.app'],credentials:true}));
 app.use(cookieParser()); 
@@ -22,30 +24,12 @@ app.use(express.json());
 const port = process.env.PORT || 3000;
 const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
 
-app.get("/user", async(req,res)=>{
-     try{
-           const {token} = req.cookies;
-           const decoded =jwt.verify(token,SECRET);
-        
-           const user = await UserModel.findOne({_id:decoded.id});
-           if(!user){
-            return res.status(401).send({message:"User not found"});
-           }
-           else{
-                res.status(200).send({message:"User found",user:user});
-           }
-          
-        }
-        catch(err){
-            res.status(401).send({message:"User not authenticated"});
-        }
-})
+app.get("/user", getUser)
 app.post("/user/login",loginUser);
 app.post("/user/logout",logoutUser)
 app.get("/",(req,res)=>{
     res.send("Nodejs Running    ")
 })
-
 
 // Cart API
 app.post('/user/addToCart',userAuth,async(req,res)=>{
@@ -174,6 +158,27 @@ app.get("/user/cart",userAuth,async(req,res)=>{
 })
 app.patch("/user/update",updateUser);
 
+app.post("/user/order",async(req,res)=>{
+    try{
+        const {token} = req.cookies;
+        console.log(token);
+        const decoded = jwt.verify(token,SECRET);
+        const user = await UserModel.findOne({_id:decoded.id});
+        const order = new OrderModel({
+            user:user._id,
+            products:req.body.products,
+            totalAmount:req.body.total,
+            orderStatus:"pending",
+            paymentMethod:req.body.paymentMethod
+            });
+            await order.save();
+            res.send({message:"Order Placed"});
+            }
+            catch(err){
+                console.log(err);
+            }
+});
+
 app.post("/admin/create/:field",adminRequest);
 
 app.patch("/admin/update/:field",async(req,res)=>{
@@ -192,8 +197,9 @@ app.patch("/admin/update/:field",async(req,res)=>{
     }
     if (field === 'subcategory'){
         try{
-        const {name,imageURl,_id,} = req.body;
-        const data = await CategoryModel.findByIdAndUpdate({_id:_id},req.body,{ new: true, runValidators: true })
+        const {name,category,_id,image,sizeurl} = req.body;
+        console.log(req.body);
+        const data = await SubCategoryModel.findByIdAndUpdate({_id:_id},req.body,{ new: true, runValidators: true })
         console.log(data)
         res.send(data);
         }

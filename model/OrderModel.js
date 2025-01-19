@@ -27,10 +27,23 @@ const orderSchema = new mongoose.Schema({
     enum: ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'],
     default: 'Pending',
   },
+  paymentMethod:{
+    type:String,
+    enum:["cod","RazorPay"],
+    required:true
+  },
   totalAmount: {
     type: Number,
     required: true,
   },
+  address:{
+    type:String,
+    required:true
+  },
+  pincode:{
+    type:Number,
+    required:true
+  }
 },{timestamps:true});
 
 
