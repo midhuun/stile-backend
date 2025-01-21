@@ -15,9 +15,6 @@ const orderProductSchema = new mongoose.Schema({
     type:String,
     required:true
   },
-  totalPrice: {
-    type: Number,
-  },
 },{timestamps:true});
 const ProductOrder = mongoose.model('ProductOrder',orderProductSchema); 
 const orderSchema = new mongoose.Schema({
