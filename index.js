@@ -158,7 +158,7 @@ app.get("/user/cart",userAuth,async(req,res)=>{
 })
 app.patch("/user/update",updateUser);
 
-app.post("/user/order",async(req,res)=>{
+app.post("/user/order",userAuth,async(req,res)=>{
     try{
         const {token} = req.cookies;
         console.log(req.cookies);
