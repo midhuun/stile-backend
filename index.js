@@ -168,16 +168,17 @@ app.post("/user/order",async(req,res)=>{
         const order = new OrderModel({
             user:user._id,
             products:req.body.products,
-            totalAmount:req.body.total,
+            totalAmount:req.body.totalAmount,
             orderStatus:"pending",
-            paymentMethod:req.body.paymentMethod
+            paymentMethod:req.body.paymentMethod,
+            pincode:req.body.pincode
             });
             await order.save();
             res.send({message:"Order Placed"});
             }
             catch(err){
                 console.log(err);
-                res.status(400).send({message:err})
+                res.status(400).send({message:JSON.stringify(err)})
             }
 });
 
