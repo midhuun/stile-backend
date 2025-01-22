@@ -13,10 +13,10 @@ const { deleteRequest } = require("./requests/deleteRequest");
 const { UserModel } = require("./model/UserModel");
 const { userAuth } = require("./middleware/userlogin");
 const { BannerModel } = require("./model/BannerModel");
-
+const {OrderModel} = require("./model/OrderModel");
 
 env.config();
-app.use(cors({origin:['http://localhost:5173','https://www.stilesagio.com','https://admin-stile-12333.vercel.app','https://stile-backend-gnqp.vercel.app','https://stile-12333.vercel.app','https://stile-frontend-9jne.vercel.app'],credentials:true}));
+app.use(cors({origin:['http://localhost:5173','https://www.stilesagio.com','https://admin-stile-12333.vercel.app','http://localhost:3000','https://stile-12333.vercel.app','https://stile-frontend-9jne.vercel.app'],credentials:true}));
 app.use(cookieParser()); 
 app.use(express.json());
 
@@ -178,7 +178,7 @@ app.post("/user/order",userAuth,async(req,res)=>{
             }
             catch(err){
                 console.log(err);
-                res.status(400).send({message:JSON.stringify(err)})
+                res.status(400).send({message:err})
             }
 });
 

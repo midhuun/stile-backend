@@ -16,7 +16,14 @@ const orderProductSchema = new mongoose.Schema({
     required:true
   },
 },{timestamps:true});
-const ProductOrder = mongoose.model('ProductOrder',orderProductSchema); 
+const ProductOrder = mongoose.model('ProductOrder',orderProductSchema);
+const addressSchema = new mongoose.Schema({
+  name: { type: String },
+  location: { type: String },
+  apartment: { type: String},
+  city: { type: String,  },
+  alternateMobile: { type: String },
+}); 
 const orderSchema = new mongoose.Schema({
   products: [{type:mongoose.Schema.ObjectId,required:true,ref:"ProductOrder"}],
   user: {
@@ -37,9 +44,11 @@ const orderSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
-  address:{
-    type:Object,
-    required:true
+  details:{
+    type:String
+  },
+  info:{
+    type:String
   },
   pincode:{
     type:Number,
@@ -48,6 +57,6 @@ const orderSchema = new mongoose.Schema({
 },{timestamps:true});
 
 
-const Order = mongoose.model('Order', orderSchema);
+const OrderModel = mongoose.model('Order', orderSchema);
 
-module.exports = { Order,ProductOrder};
+module.exports = { OrderModel,ProductOrder};
