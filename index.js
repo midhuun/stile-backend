@@ -17,7 +17,7 @@ const { BannerModel } = require("./model/BannerModel");
 const {OrderModel} = require("./model/OrderModel");
 const {Cashfree} = require("cashfree-pg");
 env.config();
-app.use(cors({origin:['http://localhost:5173','https://www.stilesagio.com','https://admin-stile-12333.vercel.app','http://localhost:3000','https://stile-12333.vercel.app','https://stile-frontend-9jne.vercel.app'],credentials:true}));
+app.use(cors({origin:['http://localhost:5173','https://www.stilesagio.com','https://admin-stile-12333.vercel.app','https://stile-backend.vercel.app','https://stile-12333.vercel.app','https://stile-frontend-9jne.vercel.app'],credentials:true}));
 app.use(cookieParser()); 
 app.use(express.json());
 const clientID = process.env.X_CLIENT_ID;
@@ -237,16 +237,16 @@ app.post("/user/payment",async(req,res)=>{
         order_currency: "INR",
         customer_details: customerDetails,
         order_note: "Payment for order",
-        return_url:"http://localhost:5173/payment/status",
-        notify_url:"http://localhost:3000/payment/status",
+        return_url:"https://stilesagio.com/payment/status",
+        notify_url:"https://stile-backend.vercel.app/payment/status",
         order_meta:{
-            return_url:"http://localhost:5173/checkout",
-            notify_url:"http://localhost:3000/payment/status",
+            return_url:"https://stilesagio.com/checkout",
+            notify_url:"https://stile-backend.vercel.app/payment/status",
         },
         order_note:`Payment for order ${orderID}`,
         link_meta: {
-            return_url: "http://localhost:5173/payment/status",
-            notify_url: "http://localhost:3000/payment/status",
+            return_url: "https://stilesagio.com/payment/status",
+            notify_url: "https://stile-backend.vercel.app/payment/status",
         },
       }
     try{
