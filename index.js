@@ -1,4 +1,5 @@
 const express = require("express");
+const axios = require("axios");
 const app = express();
 const cors = require('cors')
 const env = require("dotenv");
@@ -14,21 +15,23 @@ const { UserModel } = require("./model/UserModel");
 const { userAuth } = require("./middleware/userlogin");
 const { BannerModel } = require("./model/BannerModel");
 const {OrderModel} = require("./model/OrderModel");
-
+const {Cashfree} = require("cashfree-pg");
 env.config();
 app.use(cors({origin:['http://localhost:5173','https://www.stilesagio.com','https://admin-stile-12333.vercel.app','http://localhost:3000','https://stile-12333.vercel.app','https://stile-frontend-9jne.vercel.app'],credentials:true}));
 app.use(cookieParser()); 
 app.use(express.json());
-
-
+const clientID = process.env.X_CLIENT_ID;
+const clientSecret = process.env.X_CLIENT_SECRET;
 const port = process.env.PORT || 3000;
 const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
-
+Cashfree.XClientId = clientID;
+Cashfree.XClientSecret =clientSecret;
+Cashfree.XEnvironment = Cashfree.Environment.TEST;
 app.get("/user", getUser)
 app.post("/user/login",loginUser);
-app.post("/user/logout",logoutUser)
+app.post("/user/logout",logoutUser);
 app.get("/",(req,res)=>{
-    res.send("Nodejs Running    ")
+    res.send("Nodejs Running")
 })
 
 // Cart API
@@ -88,6 +91,7 @@ app.post('/user/addToFavourites',userAuth,async(req,res)=>{
         console.log(err);
     }
 })
+
 app.post('/user/removeFromFavourites',userAuth,async(req,res)=>{
     try{
         const {token} = req.cookies;
@@ -109,7 +113,7 @@ app.post('/user/removeFromCart',userAuth,async(req,res)=>{
         const decoded = jwt.verify(token,SECRET);
         const user = await UserModel.findOne({_id:decoded.id});
         const cartItem = user.cart.find((item)=>item.product.toString().includes(product._id) && item.selectedSize === req.body.selectedSize);
-        console.log(cartItem);
+    
         if(cartItem){
             if(cartItem.quantity === 1 ){
                 user.cart.pull({product:product._id,selectedSize:req.body.selectedSize});
@@ -130,6 +134,20 @@ app.post('/user/removeFromCart',userAuth,async(req,res)=>{
         console.log(err);
     }
 });
+app.delete('/user/clearCart',userAuth,async(req,res)=>{
+    try{
+        const {token} = req.cookies;
+        const decoded = jwt.verify(token,SECRET);
+        const user = await UserModel.findOne({_id:decoded.id});
+        user.cart = [];
+       await user.save();
+       res.status(204).send({message:"Cleared"})
+    }
+    catch(err){
+        console.log(err);
+        res.status(400).send({message:err})
+    }
+});
 app.post('/user/deleteFromCart',userAuth,async(req,res)=>{
     try{
         const {token} = req.cookies;
@@ -137,7 +155,7 @@ app.post('/user/deleteFromCart',userAuth,async(req,res)=>{
         const decoded = jwt.verify(token,SECRET);
         const user = await UserModel.findOne({_id:decoded.id})
         user.cart.pull({product:productdata,selectedSize:req.body.selectedSize}) 
-        console.log(productdata._id)
+    
        await user.save();
        res.status(204).send({message:"Deleted"})
     }
@@ -157,12 +175,32 @@ app.get("/user/cart",userAuth,async(req,res)=>{
     }
 })
 app.patch("/user/update",updateUser);
-
+app.get("/user/orders",userAuth,async(req,res)=>{
+    try{
+         const {token} = req.cookies;
+         const decoded = jwt.verify(token,SECRET);
+         console.log(decoded);
+        const userWithOrders = await UserModel.findOne({ _id: decoded.id})
+        .populate({
+          path: "orders",
+          populate: {
+            path: "products", 
+          },
+        });
+        console.log("orders",userWithOrders)
+        res.json(userWithOrders);
+    }
+    catch(err){
+        console.log(err);
+        res.status(400).send({message:"Error Fetching Orders"})
+    }
+})
+app.post("/auth/truecaller/callback",(req,res)=>{
+    res.send({message:"Logged in"})
+})
 app.post("/user/order",userAuth,async(req,res)=>{
     try{
         const {token} = req.cookies;
-        console.log(req.cookies);
-        console.log(token);
         const decoded = jwt.verify(token,SECRET);
         const user = await UserModel.findOne({_id:decoded.id});
         const order = new OrderModel({
@@ -171,8 +209,12 @@ app.post("/user/order",userAuth,async(req,res)=>{
             totalAmount:req.body.totalAmount,
             orderStatus:"pending",
             paymentMethod:req.body.paymentMethod,
-            pincode:req.body.pincode
+            pincode:req.body.pincode,
+            address:req.body.address,
+            orderId:req.body.orderId
             });
+            await user.orders.push(order)
+            await user.save();
             await order.save();
             res.send({message:"Order Placed"});
             }
@@ -181,7 +223,59 @@ app.post("/user/order",userAuth,async(req,res)=>{
                 res.status(400).send({message:err})
             }
 });
-
+app.post("/user/payment",async(req,res)=>{
+    const {name,phone,amount} = req.body
+    const orderID = `ORDER_${new Date().getTime()}`;
+    const customerDetails = {
+        customer_name: name,
+        customer_phone: phone,
+        customer_id:'wfwrofwiwedvlks'
+      };
+      const payload = {
+        order_id: orderID,
+        order_amount: amount,
+        order_currency: "INR",
+        customer_details: customerDetails,
+        order_note: "Payment for order",
+        return_url:"http://localhost:5173/payment/status",
+        notify_url:"http://localhost:3000/payment/status",
+        order_meta:{
+            return_url:"http://localhost:5173/checkout",
+            notify_url:"http://localhost:3000/payment/status",
+        },
+        order_note:`Payment for order ${orderID}`,
+        link_meta: {
+            return_url: "http://localhost:5173/payment/status",
+            notify_url: "http://localhost:3000/payment/status",
+        },
+      }
+    try{
+         const response = await Cashfree.PGCreateOrder("2025-01-01",payload)
+          const { payment_session_id: token,order_id } = response.data;
+          res.status(200).json({ token, order_id });
+    }
+   catch(err){
+    console.log(err);
+    res.status(400).send(err);
+   }
+    
+})
+ app.get("/verify/payment/:orderid",(req,res)=>{
+    const orderid = req.params.orderid;
+    let version = "2023-08-01";
+    Cashfree.PGFetchOrder(version, orderid).then((response) => {
+       console.log("Verify Status",response.data);
+        res.status(200).send({mesage:"Payment done successfully",success:true})
+    }).catch((error) => {
+        console.error('Error:', error.response.data.message);
+        res.status(400).send({message:"Payment failed"})
+    });
+ })
+app.get("/payment/status",(req,res)=>{
+    const { order_id, txStatus, txMsg, paymentMode } = req.body;
+    console.log("logged");
+    console.log(req.body);
+})
 app.post("/admin/create/:field",adminRequest);
 
 app.patch("/admin/update/:field",async(req,res)=>{
@@ -212,9 +306,11 @@ app.patch("/admin/update/:field",async(req,res)=>{
         }
     }
     if (field === 'product'){
+        console.log("request");
         try{
         const {_id} = req.body;
-        const data = await CategoryModel.findByIdAndUpdate({_id:_id},req.body,{ new: true, runValidators: true })
+        console.log(req.body);
+        const data = await ProductModel.findByIdAndUpdate({_id:_id},req.body,{ new: true, runValidators: true })
         console.log(data)
         res.send(data);
         }

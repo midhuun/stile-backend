@@ -12,7 +12,6 @@ const userAuth = async(req,res,next)=>{
     if(!token) return res.status(401).send({message:"Unauthorized"})
     try{
        const decoded =jwt.verify(token,SECRET);
-       console.log(decoded);
        const user = await UserModel.find({_id:decoded.id});
        if(!user){
         return res.status(401).json({message:"Please login to access this resource"})
