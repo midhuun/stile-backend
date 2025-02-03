@@ -19,13 +19,13 @@ env.config();
 app.use(cors({origin:['http://localhost:5173','https://www.stilesagio.com','https://admin-stile-12333.vercel.app','https://stile-backend-gnqp.vercel.app','https://stile-12333.vercel.app','https://stile-frontend-9jne.vercel.app'],credentials:true}));
 app.use(cookieParser()); 
 app.use(express.json());
-// const clientID = process.env.X_CLIENT_ID;
-// const clientSecret = process.env.X_CLIENT_SECRET;
+const clientID = process.env.X_CLIENT_ID;
+const clientSecret = process.env.X_CLIENT_SECRET;
 const port = process.env.PORT || 3000;
 const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
 Cashfree.XClientId = clientID;
 Cashfree.XClientSecret =clientSecret;
-Cashfree.XEnvironment = Cashfree.Environment.TEST;
+Cashfree.XEnvironment = Cashfree.Environment.PRODUCTION;
 app.get("/user", getUser)
 app.post("/user/login",loginUser);
 app.post("/user/logout",logoutUser);
