@@ -14,7 +14,7 @@ const { UserModel } = require("./model/UserModel");
 const { userAuth } = require("./middleware/userlogin");
 const { BannerModel } = require("./model/BannerModel");
 const {OrderModel} = require("./model/OrderModel");
-// const {Cashfree} = require("cashfree-pg");
+const {Cashfree} = require("cashfree-pg");
 env.config();
 app.use(cors({origin:['http://localhost:5173','https://www.stilesagio.com','https://admin-stile-12333.vercel.app','https://stile-backend-gnqp.vercel.app','https://stile-12333.vercel.app','https://stile-frontend-9jne.vercel.app'],credentials:true}));
 app.use(cookieParser()); 
@@ -23,9 +23,9 @@ app.use(express.json());
 // const clientSecret = process.env.X_CLIENT_SECRET;
 const port = process.env.PORT || 3000;
 const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
-// Cashfree.XClientId = clientID;
-// Cashfree.XClientSecret =clientSecret;
-// Cashfree.XEnvironment = Cashfree.Environment.TEST;
+Cashfree.XClientId = clientID;
+Cashfree.XClientSecret =clientSecret;
+Cashfree.XEnvironment = Cashfree.Environment.TEST;
 app.get("/user", getUser)
 app.post("/user/login",loginUser);
 app.post("/user/logout",logoutUser);
@@ -194,9 +194,9 @@ app.get("/user/orders",userAuth,async(req,res)=>{
         res.status(400).send({message:"Error Fetching Orders"})
     }
 })
-// app.post("/auth/truecaller/callback",(req,res)=>{
-//     res.send({message:"Logged in"})
-// })
+app.post("/auth/truecaller/callback",(req,res)=>{
+    res.send({message:"Logged in"})
+})
 app.post("/user/order",userAuth,async(req,res)=>{
     try{
         const {token} = req.cookies;
@@ -222,59 +222,59 @@ app.post("/user/order",userAuth,async(req,res)=>{
                 res.status(400).send({message:err})
             }
 });
-// app.post("/user/payment",async(req,res)=>{
-//     const {name,phone,amount} = req.body
-//     const orderID = `ORDER_${new Date().getTime()}`;
-//     const customerDetails = {
-//         customer_name: name,
-//         customer_phone: phone,
-//         customer_id:'wfwrofwiwedvlks'
-//       };
-//       const payload = {
-//         order_id: orderID,
-//         order_amount: amount,
-//         order_currency: "INR",
-//         customer_details: customerDetails,
-//         order_note: "Payment for order",
-//         return_url:"https://stilesagio.com/payment/status",
-//         notify_url:"https://stile-backend-gnqp.vercel.app/payment/status",
-//         order_meta:{
-//             return_url:"https://stilesagio.com/checkout",
-//             notify_url:"https://stile-backend-gnqp.vercel.app/payment/status",
-//         },
-//         order_note:`Payment for order ${orderID}`,
-//         link_meta: {
-//             return_url: "https://stilesagio.com/payment/status",
-//             notify_url: "https://stile-backend-gnqp.vercel.app/payment/status",
-//         },
-//       }
-//     try{
-//          const response = await Cashfree.PGCreateOrder("2025-01-01",payload)
-//           const { payment_session_id: token,order_id } = response.data;
-//           res.status(200).json({ token, order_id });
-//     }
-//    catch(err){
-//     console.log(err);
-//     res.status(400).send(err);
-//    }
+app.post("/user/payment",async(req,res)=>{
+    const {name,phone,amount} = req.body
+    const orderID = `ORDER_${new Date().getTime()}`;
+    const customerDetails = {
+        customer_name: name,
+        customer_phone: phone,
+        customer_id:'wfwrofwiwedvlks'
+      };
+      const payload = {
+        order_id: orderID,
+        order_amount: amount,
+        order_currency: "INR",
+        customer_details: customerDetails,
+        order_note: "Payment for order",
+        return_url:"https://stilesagio.com/payment/status",
+        notify_url:"https://stile-backend-gnqp.vercel.app/payment/status",
+        order_meta:{
+            return_url:"https://stilesagio.com/checkout",
+            notify_url:"https://stile-backend-gnqp.vercel.app/payment/status",
+        },
+        order_note:`Payment for order ${orderID}`,
+        link_meta: {
+            return_url: "https://stilesagio.com/payment/status",
+            notify_url: "https://stile-backend-gnqp.vercel.app/payment/status",
+        },
+      }
+    try{
+         const response = await Cashfree.PGCreateOrder("2025-01-01",payload)
+          const { payment_session_id: token,order_id } = response.data;
+          res.status(200).json({ token, order_id });
+    }
+   catch(err){
+    console.log(err);
+    res.status(400).send(err);
+   }
     
-// })
-//  app.get("/verify/payment/:orderid",(req,res)=>{
-//     const orderid = req.params.orderid;
-//     let version = "2023-08-01";
-//     Cashfree.PGFetchOrder(version, orderid).then((response) => {
-//        console.log("Verify Status",response.data);
-//         res.status(200).send({mesage:"Payment done successfully",success:true})
-//     }).catch((error) => {
-//         console.error('Error:', error.response.data.message);
-//         res.status(400).send({message:"Payment failed"})
-//     });
-//  })
-// app.get("/payment/status",(req,res)=>{
-//     const { order_id, txStatus, txMsg, paymentMode } = req.body;
-//     console.log("logged");
-//     console.log(req.body);
-// })
+})
+ app.get("/verify/payment/:orderid",(req,res)=>{
+    const orderid = req.params.orderid;
+    let version = "2023-08-01";
+    Cashfree.PGFetchOrder(version, orderid).then((response) => {
+       console.log("Verify Status",response.data);
+        res.status(200).send({mesage:"Payment done successfully",success:true})
+    }).catch((error) => {
+        console.error('Error:', error.response.data.message);
+        res.status(400).send({message:"Payment failed"})
+    });
+ })
+app.get("/payment/status",(req,res)=>{
+    const { order_id, txStatus, txMsg, paymentMode } = req.body;
+    console.log("logged");
+    console.log(req.body);
+})
 app.post("/admin/create/:field",adminRequest);
 
 app.patch("/admin/update/:field",async(req,res)=>{
