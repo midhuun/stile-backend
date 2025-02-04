@@ -227,16 +227,18 @@ app.get("/user/orders",userAuth,async(req,res)=>{
          const {token} = req.cookies;
          const decoded = jwt.verify(token,SECRET);
          console.log(decoded);
-        const userWithOrders = await UserModel.findOne({ _id: decoded.id})
-        .populate({
-          path: "orders",
-          populate: {
-            path: "products", 
-          },
-        });
-        console.log("orders",userWithOrders)
-        res.json(userWithOrders);
+         const userWithOrders = await UserModel.findOne({ _id: decoded.id })
+         .populate({
+             path: "orders",
+             populate: {
+                 path: "products.product", // Populate 'product' inside the 'products' array
+                 model: "Product" // Ensure it knows which model to use
+             }
+         });
+         console.log("orders", userWithOrders);
+         res.json(userWithOrders);
     }
+    
     catch(err){
         console.log(err);
         res.status(400).send({message:"Error Fetching Orders"})
