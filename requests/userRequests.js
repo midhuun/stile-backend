@@ -54,17 +54,10 @@ const updateUser = async(req,res)=>{
     }
 }
 const logoutUser = async(req,res)=>{
-
     console.log(req.cookies);
     try{
-        res.clearCookie('token', {
-            httpOnly: true,
-            secure: true, // Only over HTTPS in production
-            sameSite: 'Lax', // Adjust based on your requirements
-            path: '/', // Match the path where the cookie was set
-          });
-        res.send({message:'Log out Successfull'});
-        }
+        res.clearCookie('token')
+    }
         catch(err){
             res.status(401).send({err:err});
         }
