@@ -285,15 +285,15 @@ app.post("/user/payment",async(req,res)=>{
         customer_details: customerDetails,
         order_note: "Payment for order",
         return_url:"https://stilesagio.com/payment/status",
-        notify_url:"https://stile-backend-gnqp.vercel.app/payment/status",
+        notify_url:"https://stile-backend.vercel.app/payment/status",
         order_meta:{
             return_url:"https://stilesagio.com/checkout",
-            notify_url:"https://stile-backend-gnqp.vercel.app/payment/status",
+            notify_url:"https://stile-backend.vercel.app/payment/status",
         },
         order_note:`Payment for order ${orderID}`,
         link_meta: {
             return_url: "https://stilesagio.com/payment/status",
-            notify_url: "https://stile-backend-gnqp.vercel.app/payment/status",
+            notify_url: "https://stile-backend.vercel.app/payment/status",
         },
       }
     try{
@@ -315,7 +315,7 @@ app.post("/user/payment",async(req,res)=>{
         res.status(200).send({mesage:"Payment done successfully",success:true})
     }).catch((error) => {
         console.error('Error:', error.response.data.message);
-        res.status(400).send({message:"Payment failed"})
+        res.status(400).send({message:error})
     });
  })
 app.get("/payment/status",(req,res)=>{
