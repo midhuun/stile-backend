@@ -6,8 +6,19 @@ const {UserModel} = require('../model/UserModel');
 const jwt = require('jsonwebtoken');
 const cookieParser = require("cookie-parser");
 env.config();
-app.use(cors({origin:['http://localhost:5173','https://www.stilesagio.com','https://stile-frontend-9jne.vercel.app','https://stile-12333.vercel.app','https://stile-backend-gnqp.vercel.app','https://admin-stile-12333.vercel.app'],credentials:true}));
-app.use(cookieParser());
+app.use(cors({
+    origin: [
+      "http://localhost:5173",
+      "https://www.stilesagio.com",
+      "https://stile-frontend-9jne.vercel.app",
+      "https://stile-12333.vercel.app",
+      "https://admin-stile-12333.vercel.app"
+    ],
+    credentials: true, // Allow cookies and authentication headers
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Allow specific HTTP methods
+    allowedHeaders: ["Content-Type", "Authorization"], // Ensure necessary headers are allowed
+  }));
+  app.use(cookieParser());
 app.use(express.json());
 const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
 const getUser = async(req,res)=>{
