@@ -17,7 +17,7 @@ const orderProductSchema = new mongoose.Schema({
   },
 },{timestamps:true});
 const orderSchema = new mongoose.Schema({
-  products: [{type:orderProductSchema}],
+  products: [orderProductSchema],
   orderId:String,
   user: {
     type: mongoose.Schema.Types.ObjectId,
