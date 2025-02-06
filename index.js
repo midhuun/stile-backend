@@ -33,14 +33,14 @@ app.use(cors({
   
 app.use(cookieParser()); 
 app.use(express.json());
-const clientID = process.env.CLIENT_TEST_ID;
-const clientSecret = process.env.CLIENT_TEST_SECRET;
+// const clientID = process.env.CLIENT_TEST_ID;
+// const clientSecret = process.env.CLIENT_TEST_SECRET;
 const port = process.env.PORT || 3000;
 const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
-Cashfree.XClientId = clientID;
-Cashfree.XClientSecret =clientSecret;
-Cashfree.XEnvironment = Cashfree.Environment.SANDBOX;
-app.get("/user", getUser)
+// Cashfree.XClientId = clientID;
+// Cashfree.XClientSecret =clientSecret;
+// Cashfree.XEnvironment = Cashfree.Environment.SANDBOX;
+// app.get("/user", getUser)
 app.post("/user/login",loginUser);
 app.post("/user/logout",logoutUser);
 app.get("/",(req,res)=>{
@@ -279,60 +279,60 @@ app.post("/user/order",userAuth,async(req,res)=>{
                 res.status(400).send({message:err})
             }
 });
-app.post("/user/payment",async(req,res)=>{
-    const {name,phone,amount} = req.body
-    const orderID = `ORDER_${new Date().getTime()}`;
-    const customerDetails = {
-        customer_name: name,
-        customer_phone: phone,
-        customer_id:'39708371'
-      };
-      const payload = {
-        order_id: orderID,
-        order_amount: amount,
-        order_currency: "INR",
-        customer_details: customerDetails,
-        order_note: "Payment for order",
-        return_url:"https://stilesagio.com/payment/status",
-        notify_url:"https://stile-backend.vercel.app/payment/status",
-        order_meta:{
-            return_url:"https://stilesagio.com/checkout",
-            notify_url:"https://stile-backend.vercel.app/payment/status",
-        },
-        order_note:`Payment for order ${orderID}`,
-        link_meta: {
-            return_url: "https://stilesagio.com/payment/status",
-            notify_url: "https://stile-backend.vercel.app/payment/status",
-        },
-      }
-    try{
-         const response = await Cashfree.PGCreateOrder("2025-01-01",payload)
-          const { payment_session_id: token,order_id } = response.data;
-          res.status(200).json({ token, order_id });
-    }
-   catch(err){
-    console.log(err);
-    res.status(400).send(err);
-   }
+// app.post("/user/payment",async(req,res)=>{
+//     const {name,phone,amount} = req.body
+//     const orderID = `ORDER_${new Date().getTime()}`;
+//     const customerDetails = {
+//         customer_name: name,
+//         customer_phone: phone,
+//         customer_id:'39708371'
+//       };
+//       const payload = {
+//         order_id: orderID,
+//         order_amount: amount,
+//         order_currency: "INR",
+//         customer_details: customerDetails,
+//         order_note: "Payment for order",
+//         return_url:"https://stilesagio.com/payment/status",
+//         notify_url:"https://stile-backend.vercel.app/payment/status",
+//         order_meta:{
+//             return_url:"https://stilesagio.com/checkout",
+//             notify_url:"https://stile-backend.vercel.app/payment/status",
+//         },
+//         order_note:`Payment for order ${orderID}`,
+//         link_meta: {
+//             return_url: "https://stilesagio.com/payment/status",
+//             notify_url: "https://stile-backend.vercel.app/payment/status",
+//         },
+//       }
+//     try{
+//          const response = await Cashfree.PGCreateOrder("2025-01-01",payload)
+//           const { payment_session_id: token,order_id } = response.data;
+//           res.status(200).json({ token, order_id });
+//     }
+//    catch(err){
+//     console.log(err);
+//     res.status(400).send(err);
+//    }
     
-})
- app.get("/verify/payment/:orderid",(req,res)=>{
-    const orderid = req.params.orderid;
-    console.log(orderid);
-    let version = "2023-08-01";
-    Cashfree.PGFetchOrder(version, orderid).then((response) => {
-       console.log("Verify Status",response.data);
-        res.status(200).send({mesage:"Payment done successfully",success:true})
-    }).catch((error) => {
-        console.error('Error:', error.response.data.message);
-        res.status(400).send({message:error})
-    });
- })
-app.get("/payment/status",(req,res)=>{
-    const { order_id, txStatus, txMsg, paymentMode } = req.body;
-    console.log("logged");
-    console.log(req.body);
-})
+// })
+//  app.get("/verify/payment/:orderid",(req,res)=>{
+//     const orderid = req.params.orderid;
+//     console.log(orderid);
+//     let version = "2023-08-01";
+//     Cashfree.PGFetchOrder(version, orderid).then((response) => {
+//        console.log("Verify Status",response.data);
+//         res.status(200).send({mesage:"Payment done successfully",success:true})
+//     }).catch((error) => {
+//         console.error('Error:', error.response.data.message);
+//         res.status(400).send({message:error})
+//     });
+//  })
+// app.get("/payment/status",(req,res)=>{
+//     const { order_id, txStatus, txMsg, paymentMode } = req.body;
+//     console.log("logged");
+//     console.log(req.body);
+// })
 app.post("/admin/create/:field",adminRequest);
 
 app.patch("/admin/update/:field",async(req,res)=>{
