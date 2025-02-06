@@ -8,8 +8,8 @@ env.config();
 const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
 app.use(cors({
     origin: [
-      "http://localhost:5173",
-      "https://www.stilesagio.com",
+      "https://stilesagio.com",
+      "https://stilesagio.com",
       "https://stile-frontend-9jne.vercel.app",
       "https://stile-12333.vercel.app",
       "https://admin-stile-12333.vercel.app"

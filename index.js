@@ -20,8 +20,8 @@ const path = require("path");
 env.config();
 app.use(cors({
     origin: [
-      "http://localhost:5173",
-      "https://www.stilesagio.com",
+      "https://stilesagio.com",
+      "https://stilesagio.com",
       "https://stile-frontend-9jne.vercel.app",
       "https://stile-12333.vercel.app",
       "https://admin-stile-12333.vercel.app"
@@ -33,13 +33,13 @@ app.use(cors({
   
 app.use(cookieParser()); 
 app.use(express.json());
-const clientID = process.env.X_CLIENT_ID;
-const clientSecret = process.env.X_CLIENT_SECRET;
+const clientID = process.env.CLIENT_TEST_ID;
+const clientSecret = process.env.CLIENT_TEST_SECRET;
 const port = process.env.PORT || 3000;
 const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
 Cashfree.XClientId = clientID;
 Cashfree.XClientSecret =clientSecret;
-Cashfree.XEnvironment = Cashfree.Environment.PRODUCTION;
+Cashfree.XEnvironment = Cashfree.Environment.SANDBOX;
 app.get("/user", getUser)
 app.post("/user/login",loginUser);
 app.post("/user/logout",logoutUser);
@@ -47,11 +47,18 @@ app.get("/",(req,res)=>{
     res.send("Nodejs Running")
 })
 const transporter = nodemailer.createTransport({
-    service: "gmail", // Change to your email provider (e.g., Outlook, Yahoo)
+    service:'gmail', // Change to your email provider (e.g., Outlook, Yahoo)
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
+  });
+  transporter.verify((error, success) => {
+    if (error) {
+      console.log("Transporter Error:", error);
+    } else {
+      console.log("Transporter is ready to send emails!");
+    }
   });
 // Contact API
 app.post("/contact", async (req, res) => {
@@ -231,9 +238,10 @@ app.get("/user/orders",userAuth,async(req,res)=>{
         const userWithOrders = await UserModel.findOne({ _id: decoded.id})
         .populate({
             path: "orders",
-            populate:{
-               path:"products" 
-            }
+            populate: {
+                path: "products.product",
+                model: "Product"
+              }
         }).exec();
         console.log("orders",userWithOrders)
         res.json(userWithOrders);
@@ -277,7 +285,7 @@ app.post("/user/payment",async(req,res)=>{
     const customerDetails = {
         customer_name: name,
         customer_phone: phone,
-        customer_id:'wfwrofwiwedvlks'
+        customer_id:'39708371'
       };
       const payload = {
         order_id: orderID,
@@ -310,6 +318,7 @@ app.post("/user/payment",async(req,res)=>{
 })
  app.get("/verify/payment/:orderid",(req,res)=>{
     const orderid = req.params.orderid;
+    console.log(orderid);
     let version = "2023-08-01";
     Cashfree.PGFetchOrder(version, orderid).then((response) => {
        console.log("Verify Status",response.data);
