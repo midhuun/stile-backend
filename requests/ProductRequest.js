@@ -8,7 +8,7 @@ env.config();
 app.use(cors({
     origin: [
       "https://stilesagio.com",
-      "https://stilesagio.com",
+      "http://localhost:5173",
       "https://stile-frontend-9jne.vercel.app",
       "https://stile-12333.vercel.app",
       "https://admin-stile-12333.vercel.app"
