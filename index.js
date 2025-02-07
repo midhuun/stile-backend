@@ -230,6 +230,17 @@ app.get("/user/cart",userAuth,async(req,res)=>{
     }
 })
 app.patch("/user/update",updateUser);
+app.get("/order/:orderid",userAuth,async(req,res)=>{
+    const orderid = req.params.orderid;
+    try{
+      const order = await OrderModel.findById(orderid).populate({path:'products.product',model:'Product'}).lean();
+      res.send({order});
+    }
+    catch(err){
+        console.log(err);
+        res.status(401).send("Error Fetching Orders")
+    }
+});
 app.get("/user/orders",userAuth,async(req,res)=>{
     try{
          const {token} = req.cookies;
