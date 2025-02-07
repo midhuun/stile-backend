@@ -40,7 +40,7 @@ const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
 // Cashfree.XClientId = clientID;
 // Cashfree.XClientSecret =clientSecret;
 // Cashfree.XEnvironment = Cashfree.Environment.SANDBOX;
-// app.get("/user", getUser)
+app.get("/user", getUser)
 app.post("/user/login",loginUser);
 app.post("/user/logout",logoutUser);
 app.get("/",(req,res)=>{
