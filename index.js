@@ -278,7 +278,7 @@ app.post("/user/order",userAuth,async(req,res)=>{
             paymentMethod:req.body.paymentMethod,
             pincode:req.body.pincode,
             address:req.body.address,
-            orderId:req.body.orderId
+            orderId:req.body.orderId ||`ORDER_${new Date().getTime()}`
             });
             await user.orders.push(order)
             await user.save();
