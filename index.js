@@ -290,7 +290,7 @@ app.post("/user/order",userAuth,async(req,res)=>{
                 res.status(400).send({message:err})
             }
 });
-app.delete("/order/delete/:orderid", async (req, res) => {
+app.post("/order/delete/:orderid", async (req, res) => {
     const { phone } = req.body; // Extract phone from request body
     const orderId = req.params.orderid; // Extract order ID from params
     try {
@@ -301,7 +301,7 @@ app.delete("/order/delete/:orderid", async (req, res) => {
             { new: true } // Return updated user
         );
         await OrderModel.findByIdAndDelete(orderId);
-        res.status(200).json({ message: "Order deleted successfully" });
+        res.status(204).json({ message: "Order deleted successfully" });
     } catch (error) {
         console.error("Error deleting order:", error);
         res.status(500).json({ message: "Server error" });
