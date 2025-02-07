@@ -233,7 +233,7 @@ app.patch("/user/update",updateUser);
 app.get("/order/:orderid",userAuth,async(req,res)=>{
     const orderid = req.params.orderid;
     try{
-      const order = await OrderModel.findById(orderid).populate({path:'products.product',model:'Product'}).lean();
+      const order = await OrderModel.findOne({orderId:orderid}).populate({path:'products.product',model:'Product'}).lean();
       res.send({order});
     }
     catch(err){
@@ -290,6 +290,24 @@ app.post("/user/order",userAuth,async(req,res)=>{
                 res.status(400).send({message:err})
             }
 });
+app.delete("/order/delete/:orderid", async (req, res) => {
+    const { phone } = req.body; // Extract phone from request body
+    const orderId = req.params.orderid; // Extract order ID from params
+    try {
+        // Find and update the user, removing the order from their orders array
+     await UserModel.findOneAndUpdate(
+            { phone },  // Find user by phone
+            { $pull: { orders: orderId } }, // Remove order from orders array
+            { new: true } // Return updated user
+        );
+        await OrderModel.findByIdAndDelete(orderId);
+        res.status(200).json({ message: "Order deleted successfully" });
+    } catch (error) {
+        console.error("Error deleting order:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+});
+
 // app.post("/user/payment",async(req,res)=>{
 //     const {name,phone,amount} = req.body
 //     const orderID = `ORDER_${new Date().getTime()}`;
@@ -407,10 +425,10 @@ app.delete("/admin/delete/:field", async(req,res)=>{
             const {_id} = req.body;
             console.log(req.body)
             const subcategory = await SubCategoryModel.findByIdAndDelete(_id);
-            // const category = await CategoryModel.findById(product.sub);
-            // if (category) {
-            //   await category.updateOne({ $pull: { subcategories: subcategory._id } });
-            // }
+            const category = await CategoryModel.findById(product.sub);
+            if (category) {
+              await category.updateOne({ $pull: { subcategories: subcategory._id } });
+            }
             res.send(data);
         }
         catch(err){
@@ -424,10 +442,10 @@ app.delete("/admin/delete/:field", async(req,res)=>{
             console.log(req.body)
             const product = await ProductModel.findByIdAndDelete(_id);
             res.status(400).send({message:"Error"})
-            // const subcategory = await SubCategoryModel.findById(product.subcategory);
-            // if (subcategory) {
-            //   await subcategory.updateOne({ $pull: { products: product._id } });
-            // }
+            const subcategory = await SubCategoryModel.findById(product.subcategory);
+            if (subcategory) {
+              await subcategory.updateOne({ $pull: { products: product._id } });
+            }
             res.send({ message: "Product deleted successfully" });
         }
         catch(err){
