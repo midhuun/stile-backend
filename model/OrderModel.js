@@ -41,6 +41,12 @@ const orderSchema = new mongoose.Schema({
   address:{
     type:Object
   },
+  email:{
+    type:String
+  },
+  alternateMobile:{
+    type:String
+  },
   pincode:{
     type:Number,
     required:true

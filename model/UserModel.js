@@ -4,7 +4,6 @@ const {Order} = require('./OrderModel');
 const UserSchema = new mongoose.Schema({
     phone:{
          type:String,
-         required:true,
          unique:true,
          index:true,
          validate:(val)=>{
@@ -15,6 +14,7 @@ const UserSchema = new mongoose.Schema({
     },
     email: {
         type: String,
+        required:true,
     },
     orders:[{
         type:mongoose.Schema.Types.ObjectId,

@@ -17,6 +17,7 @@ const { BannerModel } = require("./model/BannerModel");
 const {OrderModel} = require("./model/OrderModel");
 // const {Cashfree} = require("cashfree-pg");
 const path = require("path");
+const { OtpModel } = require("./model/OTPModel");
 env.config();
 app.use(cors({
     origin: [
@@ -254,7 +255,6 @@ app.get("/user/orders",userAuth,async(req,res)=>{
                 model: "Product"
               }
         }).exec();
-        console.log("orders",userWithOrders)
         res.json(userWithOrders);
     }
     catch(err){
@@ -278,11 +278,47 @@ app.post("/user/order",userAuth,async(req,res)=>{
             paymentMethod:req.body.paymentMethod,
             pincode:req.body.pincode,
             address:req.body.address,
+            email:req.body.mail,
             orderId:req.body.orderId ||`ORDER_${new Date().getTime()}`
+            }).populate({
+                path: "orders",
+                populate: {
+                    path: "products.product",
+                    model: "Product"
+                  }
             });
             await user.orders.push(order)
             await user.save();
             await order.save();
+            await transporter.sendMail({
+                from: process.env.EMAIL_USER,
+                to: "midhun2031@gmail.com", // Change to your email
+                subject: `New Order Placed - ${order.orderId}`,
+                html: `
+                    <h2>New Order Details</h2>
+                    <p><strong>Customer Name:</strong> ${user.name}</p>
+                    <p><strong>Email:</strong> ${user.email}</p>
+                    <p><strong>Order ID:</strong> ${order.orderId}</p>
+                    <p><strong>Payment Method:</strong> ${order.paymentMethod}</p>
+                    <p><strong>Total Amount:</strong> Rs. ${order.totalAmount}</p>
+                    <p><strong>Pincode:</strong> ${order.pincode}</p>
+                    <p><strong>Address:</strong> ${order.address.location}</p>
+                    <p><strong>City:</strong> ${order.address.city}</p>
+                     <p><strong>Alternate Mobile:</strong> ${order.address.alternateMobile}</p>
+                    <h3>Products Ordered:</h3>
+                    <ul>
+                        ${order.products.map((item) => `
+                            <li>
+                                <strong>Product:</strong> ${item.product.name} <br />
+                                <strong>Size:</strong> ${item.selectedSize} <br />
+                                <strong>Quantity:</strong> ${item.quantity}
+                            </li>
+                        `).join("")}
+                    </ul>
+                    <p style="color: red;"><strong>Please review and process the order.</strong></p>
+                `,
+            });
+
             res.send({message:"Order Placed"});
             }
             catch(err){
@@ -291,8 +327,10 @@ app.post("/user/order",userAuth,async(req,res)=>{
             }
 });
 app.post("/order/delete/:orderid", async (req, res) => {
+    
     const { phone } = req.body; // Extract phone from request body
     const orderId = req.params.orderid; // Extract order ID from params
+    console.log(orderId)
     try {
         // Find and update the user, removing the order from their orders array
      await UserModel.findOneAndUpdate(
@@ -323,15 +361,15 @@ app.post("/order/delete/:orderid", async (req, res) => {
 //         customer_details: customerDetails,
 //         order_note: "Payment for order",
 //         return_url:"https://stilesagio.com/payment/status",
-//         notify_url:"https://stile-backend.vercel.app/payment/status",
+//         notify_url:"http://localhost:3000/payment/status",
 //         order_meta:{
 //             return_url:"https://stilesagio.com/checkout",
-//             notify_url:"https://stile-backend.vercel.app/payment/status",
+//             notify_url:"http://localhost:3000/payment/status",
 //         },
 //         order_note:`Payment for order ${orderID}`,
 //         link_meta: {
 //             return_url: "https://stilesagio.com/payment/status",
-//             notify_url: "https://stile-backend.vercel.app/payment/status",
+//             notify_url: "http://localhost:3000/payment/status",
 //         },
 //       }
 //     try{
@@ -349,7 +387,7 @@ app.post("/order/delete/:orderid", async (req, res) => {
 //     const orderid = req.params.orderid;
 //     console.log(orderid);
 //     let version = "2023-08-01";
-//     Cashfree.PGFetchOrder(version, orderid).then((response) => {
+//     Cashfree.PGOrderFetchPayments(version, orderid).then((response) => {
 //        console.log("Verify Status",response.data);
 //         res.status(200).send({mesage:"Payment done successfully",success:true})
 //     }).catch((error) => {
@@ -497,6 +535,61 @@ app.delete("/banner/delete",async(req,res)=>{
         res.status(400).send({message:"Error Creating Banner"})
     }
 })
+app.post("/send-otp", async (req, res) => {
+    const {email} = req.body;
+    console.log("email",email);
+    if (!email) return res.status(400).json({ message: "Email is required" });
+  try{
+    const otp = Math.floor(1000 + Math.random() * 9000); // Generate 4-digit OTP
+     await OtpModel.create({ email, otp });
+    await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: "Your OTP Code",
+        html: `<h2>Your OTP Code</h2><p><strong>${otp}</strong></p><p>This OTP is valid for 5 minutes.</p>
+        <p>Best regards, <br> The Sagio Team</p>`
+
+        `,
+    });
+    res.json({ message: "OTP sent successfully" });
+}
+catch(err){
+    console.log(err)
+    res.status(400).send({message:"Error Sending OTP"});
+
+}
+});
+
+// **Step 4: Verify OTP**
+app.post("/verify-otp",async (req, res) => {
+    const { email, otp } = req.body;
+    console.log(email,parseInt(otp));
+    if (!email || !otp) return res.status(400).json({ message: "Email and OTP are required" });
+    const storedOtp = await OtpModel.findOne({ email: email })
+    .sort({ createdAt: -1 }) // Sort by newest first
+    .exec();
+    console.log(storedOtp.otp);
+    if (!storedOtp) {
+        return res.status(400).json({ message: "OTP expired or not found" });
+    }
+    if (storedOtp.otp != parseInt(otp)) {
+        return res.status(400).json({ message: "Invalid OTP" });
+    }
+    OtpModel.deleteOne({email:email}); // Remove OTP after successful verification
+    res.status(200).json({ message: "OTP verified successfully" });
+    // Generate JWT Token for authentication (optional)
+    // const token = jwt.sign({ email }, SECRET);
+    //  const user = await UserModel.findOne({email:email});
+    //  if(user){
+    //     res.json({message:"User Found",token:token,user:user});
+    //  }
+    //  else{
+    //      await UserModel.create({email:email});
+        // res.status(200).json({ message: "OTP verified successfully", token });
+    //  }
+   
+});
+
 app.get("/products/:category",categoryRequest)
 app.get("/products",productRequest);
 app.get("/items/:itemName",deleteRequest);

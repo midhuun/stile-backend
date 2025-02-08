@@ -44,7 +44,6 @@ const updateUser = async(req,res)=>{
     const body = req.body;
     console.log(body)
     const {token} = req.cookies;
-  
     const decoded =await jwt.verify(token,SECRET);
     const user = await UserModel.updateOne({_id:decoded.id},req.body,{runValidators:true,new:true})
     res.send({user:user});
@@ -66,10 +65,10 @@ const logoutUser = async(req,res)=>{
 }
 const loginUser = async(req,res)=>{
     try{
-    const {phone} = req.body;
-    const isuser = await UserModel.findOne({phone});
+    const {email} = req.body;
+    const isuser = await UserModel.findOne({email});
     if(!isuser){
-        const user = await new UserModel({phone});
+        const user = await new UserModel({email});
         await user.save();
         const token = jwt.sign({id:user._id},SECRET);
         res.cookie("token",token,{secure:true,sameSite:'none'});
