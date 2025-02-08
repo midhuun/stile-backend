@@ -546,10 +546,7 @@ app.post("/send-otp", async (req, res) => {
         from: process.env.EMAIL_USER,
         to: email,
         subject: "Your OTP Code",
-        html: `<h2>Your OTP Code</h2><p><strong>${otp}</strong></p><p>This OTP is valid for 5 minutes.</p>
-        <p>Best regards, <br> The Sagio Team</p>`
-
-        `,
+        html: `<h2>Your OTP Code</h2><p><strong>${otp}</strong></p><p>This OTP is valid for 5 minutes.</p>`,
     });
     res.json({ message: "OTP sent successfully" });
 }
