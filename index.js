@@ -278,7 +278,7 @@ app.post("/user/order",userAuth,async(req,res)=>{
             paymentMethod:req.body.paymentMethod,
             pincode:req.body.pincode,
             address:req.body.address,
-            email:req.body.mail,
+            email:req.body.email,
             orderId:req.body.orderId ||`ORDER_${new Date().getTime()}`
             }).populate({
                 path: "orders",
