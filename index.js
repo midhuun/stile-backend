@@ -361,15 +361,15 @@ app.post("/order/delete/:orderid", async (req, res) => {
 //         customer_details: customerDetails,
 //         order_note: "Payment for order",
 //         return_url:"https://stilesagio.com/payment/status",
-//         notify_url:"http://localhost:3000/payment/status",
+//         notify_url:"https://stile-backend.vercel.app/payment/status",
 //         order_meta:{
 //             return_url:"https://stilesagio.com/checkout",
-//             notify_url:"http://localhost:3000/payment/status",
+//             notify_url:"https://stile-backend.vercel.app/payment/status",
 //         },
 //         order_note:`Payment for order ${orderID}`,
 //         link_meta: {
 //             return_url: "https://stilesagio.com/payment/status",
-//             notify_url: "http://localhost:3000/payment/status",
+//             notify_url: "https://stile-backend.vercel.app/payment/status",
 //         },
 //       }
 //     try{
