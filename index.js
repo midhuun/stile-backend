@@ -301,7 +301,7 @@ app.post("/user/order",userAuth,async(req,res)=>{
                      <p><strong>Alternate Mobile:</strong> ${order.address.alternateMobile}</p>
                     <h3>Products Ordered:</h3>
                     <ul>
-                        ${order.products.map((item) => `
+                        ${req.body.products.map((item) => `
                             <li>
                                 <strong>Product:</strong> ${item.product.name} <br />
                                 <strong>Size:</strong> ${item.selectedSize} <br />
