@@ -55,7 +55,7 @@ const updateUser = async(req,res)=>{
 const logoutUser = async(req,res)=>{
     console.log(req.cookies);
     try{
-        res.cookie("token",{expires:Date.now()});
+        res.clearCookie("token");
         res.status(200).send({message:"Logout Successfull"});
         res.end();
     }
@@ -78,7 +78,6 @@ const loginUser = async(req,res)=>{
     else{
          const token =await jwt.sign({id:isuser._id},SECRET);
          res.cookie("token", token, {
-            maxAge: 3 * 24 * 60 * 60 * 1000,
             secure:true,
             sameSite:'none'
           });
