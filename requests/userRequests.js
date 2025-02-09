@@ -71,7 +71,7 @@ const loginUser = async(req,res)=>{
         const user = await new UserModel({email});
         await user.save();
         const token = jwt.sign({id:user._id},SECRET);
-        res.cookie("token",token,{secure:true,sameSite:'none'});
+        res.cookie("token",token);
         console.log(user)
         res.status(200).send({message:"User Created",userexists:false})
     }
