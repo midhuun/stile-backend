@@ -290,7 +290,7 @@ app.post("/user/order",userAuth,async(req,res)=>{
                 subject: `New Order Placed - ${order.orderId}`,
                 html: `
                     <h2>New Order Details</h2>
-                    <p><strong>Customer Name:</strong> ${user.name}</p>
+                    <p><strong>Customer Name:</strong> ${req.body.address.name}</p>
                     <p><strong>Email:</strong> ${user.email}</p>
                     <p><strong>Order ID:</strong> ${order.orderId}</p>
                     <p><strong>Payment Method:</strong> ${order.paymentMethod}</p>
@@ -540,7 +540,9 @@ app.post("/send-otp", async (req, res) => {
         from: process.env.EMAIL_USER,
         to: email,
         subject: "Your OTP Code",
-        html: `<h2>Your OTP Code</h2><p><strong>${otp}</strong></p><p>This OTP is valid for 5 minutes.</p>`,
+        html: `<h1>Welcome to Stile Sagio</h1><h2>Your OTP Code</h2><p><strong>${otp}</strong></p><p>This OTP is valid for 5 minutes.</p>
+        <p style="color: blue;"><strong>Best Regards Stile Sagio Team.</strong></p>
+        `,
     });
     res.json({ message: "OTP sent successfully" });
 }
