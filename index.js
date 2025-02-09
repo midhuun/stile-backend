@@ -330,7 +330,7 @@ app.post("/order/delete/:orderid", async (req, res) => {
     
     const { phone } = req.body; // Extract phone from request body
     const orderId = req.params.orderid; // Extract order ID from params
-    console.log(orderId)
+  
     try {
         // Find and update the user, removing the order from their orders array
      await UserModel.findOneAndUpdate(
@@ -408,7 +408,7 @@ app.patch("/admin/update/:field",async(req,res)=>{
         try{
         const {name,imageURl,_id,startingPrice} = req.body;
         const data = await CategoryModel.findByIdAndUpdate  ({_id:_id},req.body,{ new: true, runValidators: true })
-        console.log(data)
+       
         res.send(data);
         }
         catch(err){
@@ -419,9 +419,9 @@ app.patch("/admin/update/:field",async(req,res)=>{
     if (field === 'subcategory'){
         try{
         const {name,category,_id,image,sizeurl} = req.body;
-        console.log(req.body);
+      
         const data = await SubCategoryModel.findByIdAndUpdate({_id:_id},req.body,{ new: true, runValidators: true })
-        console.log(data)
+      
         res.send(data);
         }
         catch(err){
@@ -430,12 +430,12 @@ app.patch("/admin/update/:field",async(req,res)=>{
         }
     }
     if (field === 'product'){
-        console.log("request");
+     
         try{
         const {_id} = req.body;
-        console.log(req.body);
+      
         const data = await ProductModel.findByIdAndUpdate({_id:_id},req.body,{ new: true, runValidators: true })
-        console.log(data)
+      
         res.send(data);
         }
         catch(err){
@@ -449,7 +449,7 @@ app.delete("/admin/delete/:field", async(req,res)=>{
     if (field === 'category'){
         try{
             const {_id} = req.body;
-            console.log(req.body)
+         
             const data = await CategoryModel.findByIdAndDelete(_id);
             res.send(data);
         }
@@ -461,7 +461,7 @@ app.delete("/admin/delete/:field", async(req,res)=>{
     if (field === 'subcategory'){
         try{
             const {_id} = req.body;
-            console.log(req.body)
+         
             const subcategory = await SubCategoryModel.findByIdAndDelete(_id);
             const category = await CategoryModel.findById(product.sub);
             if (category) {
@@ -477,7 +477,7 @@ app.delete("/admin/delete/:field", async(req,res)=>{
     if (field === 'product'){
         try{
             const {_id} = req.body;
-            console.log(req.body)
+          
             const product = await ProductModel.findByIdAndDelete(_id);
             res.status(400).send({message:"Error"})
             const subcategory = await SubCategoryModel.findById(product.subcategory);
@@ -493,7 +493,7 @@ app.delete("/admin/delete/:field", async(req,res)=>{
 })
 app.get("/category/:name",async(req,res)=>{
     const name = req.params.name;
-    console.log(name)
+  
     try{
        const subcategory =await SubCategoryModel.findOne({slug:name}).populate({path:'products',model:'Product'});
        const products = await ProductModel.find({subcategory:subcategory._id})
@@ -537,7 +537,7 @@ app.delete("/banner/delete",async(req,res)=>{
 })
 app.post("/send-otp", async (req, res) => {
     const {email} = req.body;
-    console.log("email",email);
+  
     if (!email) return res.status(400).json({ message: "Email is required" });
   try{
     const otp = Math.floor(1000 + Math.random() * 9000); // Generate 4-digit OTP
@@ -560,12 +560,11 @@ catch(err){
 // **Step 4: Verify OTP**
 app.post("/verify-otp",async (req, res) => {
     const { email, otp } = req.body;
-    console.log(email,parseInt(otp));
+  
     if (!email || !otp) return res.status(400).json({ message: "Email and OTP are required" });
     const storedOtp = await OtpModel.findOne({ email: email })
     .sort({ createdAt: -1 }) // Sort by newest first
     .exec();
-    console.log(storedOtp.otp);
     if (!storedOtp) {
         return res.status(400).json({ message: "OTP expired or not found" });
     }

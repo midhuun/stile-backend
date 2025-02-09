@@ -25,7 +25,7 @@ const getUser = async(req,res)=>{
      try{
            const {token} = req.cookies;
            const decoded =jwt.verify(token,SECRET);
-           console.log(decoded,token);
+           console.log("decoded",decoded,token);
            const user = await UserModel.findOne({_id:decoded.id});
            if(!user){
             return res.status(401).send({message:"User not found"});
