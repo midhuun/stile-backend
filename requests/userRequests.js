@@ -55,7 +55,7 @@ const updateUser = async(req,res)=>{
 const logoutUser = async(req,res)=>{
     console.log(req.cookies);
     try{
-        res.clearCookie("token", { path: "/", domain: "" }); 
+        res.clearCookie("token");
         res.status(200).send({message:"Logout Successfull"});
         res.end();
     }
