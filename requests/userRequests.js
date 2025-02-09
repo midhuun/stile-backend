@@ -55,7 +55,7 @@ const updateUser = async(req,res)=>{
 const logoutUser = async(req,res)=>{
     console.log(req.cookies);
     try{
-        res.cookie("token", "", { expires: new Date(0), path: "/", domain: "" });
+        res.clearCookie("token",{secure:true,sameSite:"none",path:"/"})
         res.status(200).send({message:"Logout Successfull"});
         res.end();
     }
@@ -71,7 +71,7 @@ const loginUser = async(req,res)=>{
         const user = await new UserModel({email});
         await user.save();
         const token = jwt.sign({id:user._id},SECRET);
-        res.cookie("token",token);
+        res.cookie("token",token,{secure:true,sameSite:'none'});
         console.log(user)
         res.status(200).send({message:"User Created",userexists:false})
     }
