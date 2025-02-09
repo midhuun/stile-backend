@@ -270,7 +270,7 @@ app.post("/user/order",userAuth,async(req,res)=>{
         const {token} = req.cookies;
         const decoded = jwt.verify(token,SECRET);
         const user = await UserModel.findOne({_id:decoded.id});
-        const order = new OrderModel({
+        const order =await new OrderModel({
             user:user._id,
             products:req.body.products,
             totalAmount:req.body.totalAmount,
