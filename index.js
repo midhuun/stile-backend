@@ -280,12 +280,6 @@ app.post("/user/order",userAuth,async(req,res)=>{
             address:req.body.address,
             email:req.body.email,
             orderId:req.body.orderId ||`ORDER_${new Date().getTime()}`
-            }).populate({
-                path: "orders",
-                populate: {
-                    path: "products.product",
-                    model: "Product"
-                  }
             });
             await user.orders.push(order)
             await user.save();
