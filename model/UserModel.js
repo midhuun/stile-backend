@@ -4,8 +4,6 @@ const {Order} = require('./OrderModel');
 const UserSchema = new mongoose.Schema({
     phone:{
          type:String,
-         unique:true,
-         index:true,
          validate:(val)=>{
             if(!validator.isMobilePhone(val,'en-IN')){
                 throw new Error('Invalid Phone Number')
