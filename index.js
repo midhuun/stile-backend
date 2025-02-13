@@ -15,9 +15,10 @@ const { UserModel } = require("./model/UserModel");
 const { userAuth } = require("./middleware/userlogin");
 const { BannerModel } = require("./model/BannerModel");
 const {OrderModel} = require("./model/OrderModel");
-// const {Cashfree} = require("cashfree-pg");
+const {Cashfree} = require("cashfree-pg");
 const path = require("path");
 const { OtpModel } = require("./model/OTPModel");
+const PaymentStatus = require("./model/PaymentStatus");
 env.config();
 app.use(cors({
     origin: [
@@ -34,13 +35,13 @@ app.use(cors({
   
 app.use(cookieParser()); 
 app.use(express.json());
-// const clientID = process.env.CLIENT_TEST_ID;
-// const clientSecret = process.env.CLIENT_TEST_SECRET;
+const clientID = 'TEST104273469db2ea608723eb26676264372401';
+const clientSecret ='cfsk_ma_test_0c3ef3a57db539602e341b45d71e79a0_2fa946e4';
 const port = process.env.PORT || 3000;
 const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
-// Cashfree.XClientId = clientID;
-// Cashfree.XClientSecret =clientSecret;
-// Cashfree.XEnvironment = Cashfree.Environment.SANDBOX;
+Cashfree.XClientId = clientID;
+Cashfree.XClientSecret =clientSecret;
+Cashfree.XEnvironment = Cashfree.Environment.SANDBOX;
 app.get("/user", getUser)
 app.post("/user/login",loginUser);
 app.post("/user/logout",logoutUser);
@@ -48,7 +49,7 @@ app.get("/",(req,res)=>{
     res.send("Nodejs Running")
 })
 const transporter = nodemailer.createTransport({
-    service:'gmail', // Change to your email provider (e.g., Outlook, Yahoo)
+    service:'gmail',
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
@@ -334,68 +335,118 @@ app.post("/order/delete/:orderid", async (req, res) => {
         );
         await OrderModel.findByIdAndDelete(orderId);
         res.status(204).json({ message: "Order deleted successfully" });
+
     } catch (error) {
         console.error("Error deleting order:", error);
         res.status(500).json({ message: "Server error" });
     }
 });
 
-// app.post("/user/payment",async(req,res)=>{
-//     const {name,phone,amount} = req.body
-//     const orderID = `ORDER_${new Date().getTime()}`;
-//     const customerDetails = {
-//         customer_name: name,
-//         customer_phone: phone,
-//         customer_id:'39708371'
-//       };
-//       const payload = {
-//         order_id: orderID,
-//         order_amount: amount,
-//         order_currency: "INR",
-//         customer_details: customerDetails,
-//         order_note: "Payment for order",
-//         return_url:"https://stilesagio.com/payment/status",
-//         notify_url:"https://stile-backend.vercel.app/payment/status",
-//         order_meta:{
-//             return_url:"https://stilesagio.com/checkout",
-//             notify_url:"https://stile-backend.vercel.app/payment/status",
-//         },
-//         order_note:`Payment for order ${orderID}`,
-//         link_meta: {
-//             return_url: "https://stilesagio.com/payment/status",
-//             notify_url: "https://stile-backend.vercel.app/payment/status",
-//         },
-//       }
-//     try{
-//          const response = await Cashfree.PGCreateOrder("2025-01-01",payload)
-//           const { payment_session_id: token,order_id } = response.data;
-//           res.status(200).json({ token, order_id });
-//     }
-//    catch(err){
-//     console.log(err);
-//     res.status(400).send(err);
-//    }
+app.post("/user/payment",async(req,res)=>{
+    const {name,phone,amount,email} = req.body;
+    console.log("headers",req.headers);
+    console.log(name,phone,amount);
+    const orderID = `ORDER_${new Date().getTime()}`;
+    const customerID = `CUST_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    const customerDetails = {
+        customer_name: name,
+        customer_email: email,
+        customer_id:customerID,
+        customer_phone:phone
+      };
+      const payload = {
+        order_id: orderID,
+        order_amount: amount,
+        order_currency: "INR",
+        customer_details: customerDetails,
+        order_note: "Payment for order"
+        // return_url:"https://stilesagio.com/payment/status",
+        // notify_url:"http://localhost:3000/payment/status",
+        // order_meta:{
+        //     return_url:"http://localhost:5173/checkout",
+        //     notify_url:"http://localhost:3000/payment/status",
+        // },
+        // order_note:`Payment for order ${orderID}`,
+        // link_meta: {
+        //     return_url: "https://stilesagio.com/payment/status",
+        //     notify_url: "http://localhost:3000/payment/status",
+        // },
+      }
+    try{
+         const response = await Cashfree.PGCreateOrder("2023-08-01",payload);
+          console.log(response.data);
+          const { payment_session_id: token,order_id } = response.data;
+          res.status(200).json({ token, order_id });
+    }
+   catch(err){
+    console.log(err.response.data);
+    res.status(401).send(err.response.data);
+   }
     
-// })
-//  app.get("/verify/payment/:orderid",(req,res)=>{
-//     const orderid = req.params.orderid;
-//     console.log(orderid);
-//     let version = "2023-08-01";
-//     Cashfree.PGOrderFetchPayments(version, orderid).then((response) => {
-//        console.log("Verify Status",response.data);
-//         res.status(200).send({mesage:"Payment done successfully",success:true})
-//     }).catch((error) => {
-//         console.error('Error:', error.response.data.message);
-//         res.status(400).send({message:error})
-//     });
-//  })
-// app.get("/payment/status",(req,res)=>{
-//     const { order_id, txStatus, txMsg, paymentMode } = req.body;
-//     console.log("logged");
-//     console.log(req.body);
-// })
+})
+app.get("/verify/payment/:orderid", async (req, res) => {
+    const orderid = req.params.orderid;
+    console.log("Verifying payment for order:", orderid);
+    const version = "2023-08-01";
+    try {
+      const response = await Cashfree.PGOrderFetchPayments(version, orderid);
+      const paymentStatus = response?.data?.[0]?.payment_status;
+      
+      console.log("Verify Status:", paymentStatus);
+  
+      if (!paymentStatus) {
+        return res.status(400).json({ message: "Invalid response from payment gateway", success: false });
+      }
+  
+      const statusMap = {
+        SUCCESS: { status: 200, message: "Payment done successfully", success: true },
+        NOT_ATTEMPTED: { status: 200, message: "Try to pay using the payment link", success: false },
+        CANCELLED: { status: 400, message: "You canceled the payment. Try again!", success: false },
+        FAILED: { status: 400, message: "Payment failed. Try again!", success: false },
+        USER_DROPPED: { status: 400, message: "Complete the payment to see the status!", success: false },
+        PENDING: { status: 202, message: "Payment is Pending!", success: false },
+        VOID: { status: 400, message: "Error!", success: false },
+      };
+  
+      const result = statusMap[paymentStatus] || { status: 400, message: "Unknown error", success: false };
+  
+      return res.status(result.status).json({ message: result.message, success: result.success });
+  
+    } catch (error) {
+      console.error("Error verifying payment:", error?.response?.data || error);
+      return res.status(500).json({ message: "Internal server error", success: false });
+    }
+  });
+  
 app.post("/admin/create/:field",adminRequest);
-
+app.post("/webhook",async(req,res)=>{
+   console.log("Status",req.body.data);
+   const orderid = req.body.data.order.order_id;
+   const paymentstatus = req.body.data.payment.payment_status;
+    await PaymentStatus.create({orderid,paymentStatus:paymentstatus});
+    res.send({status:200})
+})
+app.post("/payment/status/:orderid",async(req,res)=>{
+    const orderid = req.params.orderid;
+    const payment = await PaymentStatus.find({ orderid })
+  .sort({ updatedAt: -1 }) 
+  .limit(1)
+  .exec();
+   console.log(payment);
+    res.send(payment || "Error");
+    // if(!payment){
+    //     return res.status(202).json({ message: "Payment Pending", success: false });
+    // }
+    // if(payment.paymentStatus === 'FAILED'){
+    //     return res.status(400).json({message:"FAILED",success:true})
+    // }
+    // if(payment.paymentStatus === 'SUCCESS'){
+    //     return res.status(200).json({message:"SUCCESS",success:true})
+    // }
+    // else{
+    //     return res.status(400).json({message:"Payment is pending",success:true})
+    // }
+})
 app.patch("/admin/update/:field",async(req,res)=>{
     const {field} = req.params;
     if (field === 'category'){
