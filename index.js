@@ -35,8 +35,8 @@ app.use(cors({
   
 app.use(cookieParser()); 
 app.use(express.json());
-const clientID = process.env.X_CLIENT_ID;
-const clientSecret =process.env.X_CLIENT_SECRET;
+const clientID = '8736483b2f7fe149c6ecaeb913846378';
+const clientSecret ='cfsk_ma_prod_2a43acc27a7773af0fe2a06b30dc35b1_75d62a6c';
 const port = process.env.PORT || 3000;
 const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
 Cashfree.XClientId = clientID;
