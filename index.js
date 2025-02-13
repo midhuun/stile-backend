@@ -35,13 +35,13 @@ app.use(cors({
   
 app.use(cookieParser()); 
 app.use(express.json());
-const clientID = 'TEST104273469db2ea608723eb26676264372401';
-const clientSecret ='cfsk_ma_test_0c3ef3a57db539602e341b45d71e79a0_2fa946e4';
+const clientID = process.env.X_CLIENT_ID;
+const clientSecret =process.env.X_CLIENT_SECRET;
 const port = process.env.PORT || 3000;
 const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
 Cashfree.XClientId = clientID;
 Cashfree.XClientSecret =clientSecret;
-Cashfree.XEnvironment = Cashfree.Environment.SANDBOX;
+Cashfree.XEnvironment = Cashfree.Environment.PRODUCTION;
 app.get("/user", getUser)
 app.post("/user/login",loginUser);
 app.post("/user/logout",logoutUser);
