@@ -41,7 +41,7 @@ const port = process.env.PORT || 3000;
 const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
 Cashfree.XClientId = clientID;
 Cashfree.XClientSecret =clientSecret;
-Cashfree.XEnvironment = Cashfree.Environment.SANDBOX;
+Cashfree.XEnvironment = Cashfree.Environment.PRODUCTION;
 app.get("/user", getUser)
 app.post("/user/login",loginUser);
 app.post("/user/logout",logoutUser);
@@ -421,8 +421,8 @@ app.get("/verify/payment/:orderid", async (req, res) => {
 app.post("/admin/create/:field",adminRequest);
 app.post("/webhook",async(req,res)=>{
    console.log("Status",req.body.data);
-   const orderid = req.body.data.order.order_id;
-   const paymentstatus = req.body.data.payment.payment_status;
+   const orderid = req.body.data.order.order_id || "";
+   const paymentstatus = req.body.data.payment.payment_status || "";
     await PaymentStatus.create({orderid,paymentStatus:paymentstatus});
     res.send({status:200})
 })
