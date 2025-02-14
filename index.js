@@ -280,6 +280,7 @@ app.post("/user/order",userAuth,async(req,res)=>{
             pincode:req.body.pincode,
             address:req.body.address,
             email:req.body.email,
+            alternateMobile:req.body.alternateMobile,
             orderId:req.body.orderId ||`ORDER_${new Date().getTime()}`
             });
             await user.orders.push(order)
@@ -350,7 +351,7 @@ app.post("/user/payment",async(req,res)=>{
     const customerID = `CUST_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
     const customerDetails = {
         customer_name: name,
-        customer_email: email,
+        customer_phone: phone,
         customer_id:customerID,
         customer_phone:phone
       };

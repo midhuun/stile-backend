@@ -65,10 +65,10 @@ const logoutUser = async(req,res)=>{
 }
 const loginUser = async(req,res)=>{
     try{
-    const {email} = req.body;
-    const isuser = await UserModel.findOne({email});
+    const {phone} = req.body;
+    const isuser = await UserModel.findOne({phone});
     if(!isuser){
-        const user = await new UserModel({email});
+        const user = await new UserModel({phone});
         await user.save();
         const token = jwt.sign({id:user._id},SECRET);
         res.cookie("token",token,{secure:true,sameSite:'none'});
