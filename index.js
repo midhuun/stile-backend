@@ -39,8 +39,8 @@ const clientID = process.env.X_CLIENT_ID || "smfkskjjsjvsjmvs";
 const clientSecret =process.env.X_CLIENT_SECRET || "smfkskjjsjvsjmvs";
 const port = process.env.PORT || 3000;
 const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
-Cashfree.XClientId = clientID;
-Cashfree.XClientSecret =clientSecret;
+Cashfree.XClientId = '8736483b2f7fe149c6ecaeb913846378';
+Cashfree.XClientSecret ='cfsk_ma_prod_2a43acc27a7773af0fe2a06b30dc35b1_75d62a6c';
 Cashfree.XEnvironment = Cashfree.Environment.PRODUCTION;
 app.get("/user", getUser)
 app.post("/user/login",loginUser);
