@@ -361,15 +361,15 @@ app.post("/user/payment",async(req,res)=>{
         customer_details: customerDetails,
         order_note: "Payment for order"
         // return_url:"https://stilesagio.com/payment/status",
-        // notify_url:"http://localhost:3000/payment/status",
+        // notify_url:"https://stile-backend.vercel.app/payment/status",
         // order_meta:{
         //     return_url:"http://localhost:5173/checkout",
-        //     notify_url:"http://localhost:3000/payment/status",
+        //     notify_url:"https://stile-backend.vercel.app/payment/status",
         // },
         // order_note:`Payment for order ${orderID}`,
         // link_meta: {
         //     return_url: "https://stilesagio.com/payment/status",
-        //     notify_url: "http://localhost:3000/payment/status",
+        //     notify_url: "https://stile-backend.vercel.app/payment/status",
         // },
       }
     try{
@@ -421,8 +421,8 @@ app.get("/verify/payment/:orderid", async (req, res) => {
 app.post("/admin/create/:field",adminRequest);
 app.post("/webhook",async(req,res)=>{
    console.log("Status",req.body.data);
-   const orderid = req.body.data.order.order_id || "";
-   const paymentstatus = req.body.data.payment.payment_status || "";
+   const orderid = req.body?.data?.order?.order_id || "";
+   const paymentstatus = req.body?.data?.payment?.payment_status || "";
     await PaymentStatus.create({orderid,paymentStatus:paymentstatus});
     res.send({status:200})
 })
