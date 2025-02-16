@@ -360,18 +360,18 @@ app.post("/user/payment",async(req,res)=>{
         order_amount: amount,
         order_currency: "INR",
         customer_details: customerDetails,
-        order_note: "Payment for order"
+        order_note: "Payment for order",
         // return_url:"https://stilesagio.com/payment/status",
-        // notify_url:"https://stile-backend.vercel.app/payment/status",
-        // order_meta:{
-        //     return_url:"http://localhost:5173/checkout",
-        //     notify_url:"https://stile-backend.vercel.app/payment/status",
-        // },
+        notify_url:"https://stile-backend.vercel.app/webhook",
+        order_meta:{
+            return_url:`https://www.stilesagio.com/checkout/${orderID}`,
+            notify_url:"https://stile-backend.vercel.app/webhook",
+        },
         // order_note:`Payment for order ${orderID}`,
-        // link_meta: {
-        //     return_url: "https://stilesagio.com/payment/status",
-        //     notify_url: "https://stile-backend.vercel.app/payment/status",
-        // },
+        link_meta: {
+            return_url: `https://www.stilesagio.com/checkout/${orderID}`,
+            notify_url: "https://stile-backend.vercel.app/webhook",
+        },
       }
     try{
          const response = await Cashfree.PGCreateOrder("2023-08-01",payload);
