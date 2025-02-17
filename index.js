@@ -428,13 +428,32 @@ app.post("/webhook",async(req,res)=>{
     res.send({status:200})
 })
 app.post("/payment/status/:orderid",async(req,res)=>{
+    try{
     const orderid = req.params.orderid;
     const payment = await PaymentStatus.find({ orderid })
   .sort({ updatedAt: -1 }) 
   .limit(1)
   .exec();
    console.log(payment);
-    res.send(payment || "Error");
+   if(payment){
+    const status = payment[0].paymentStatus;
+    if(status === 'SUCCESS'){
+        await OrderModel.updateOne({orderId:orderid},{paymentStatus:'Paid'})
+    }
+    else{
+        await OrderModel.deleteOne({orderId:orderid})
+    }
+    res.send(payment);
+   }
+   else{
+    res.status(404).send({message:"Order not found"})
+   }
+   
+    }
+    catch(error){
+        console.error(error);
+        res.status(500).json({ message: error, success: false });
+    }
     // if(!payment){
     //     return res.status(202).json({ message: "Payment Pending", success: false });
     // }

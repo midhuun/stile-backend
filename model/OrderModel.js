@@ -49,7 +49,12 @@ const orderSchema = new mongoose.Schema({
   pincode:{
     type:Number,
     required:true
-  }
+  },
+paymentStatus:{
+  type:String,
+  enum:['Pending','Paid'],
+  default:'Pending',
+}
 },{timestamps:true});
 
 
