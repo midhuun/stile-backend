@@ -281,11 +281,15 @@ app.post("/user/order",userAuth,async(req,res)=>{
             address:req.body.address,
             email:req.body.email,
             alternateMobile:req.body.alternateMobile,
-            orderId:req.body.orderId ||`ORDER_${new Date().getTime()}`
+            orderId:req.body.orderId ||`ORDER_${new Date().getTime()}`,
+            paymentStatus:req.body.paymentMethod === 'cod' ? 'Paid' : 'Pending',
             });
+          
             await user.orders.push(order)
+          
             await user.save();
             await order.save();
+            if(req.body.paymentMethod === 'cod'){
             await transporter.sendMail({
                 from: process.env.EMAIL_USER,
                 to: "midhun2031@gmail.com", // Change to your email
@@ -314,8 +318,9 @@ app.post("/user/order",userAuth,async(req,res)=>{
                     <p style="color: red;"><strong>Please review and process the order.</strong></p>
                 `,
             });
-
             res.send({message:"Order Placed"});
+        }
+            res.send({message:"Payment Processing"})
             }
             catch(err){
                 console.log(err);
