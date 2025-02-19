@@ -350,7 +350,7 @@ app.post("/order/delete/:orderid", async (req, res) => {
 });
 
 app.post("/user/payment",async(req,res)=>{
-    const {name,phone,amount,email} = req.body;
+    const {name,phone,amount} = req.body;
     console.log("headers",req.headers);
     console.log(name,phone,amount);
     const orderID = `ORDER_${new Date().getTime()}`;
