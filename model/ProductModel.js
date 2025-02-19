@@ -55,6 +55,7 @@ const SubcategorySchema = new Schema(
     name: {
       type: String,
       required: true,
+      unique: true,
       minLength: [4, "Subcategory name must be more than 4 characters"],
       maxLength: [30, "Subcategory name must not be more than 30 characters"],
     },

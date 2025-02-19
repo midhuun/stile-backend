@@ -443,7 +443,37 @@ app.post("/payment/status/:orderid",async(req,res)=>{
    if(payment){
     const status = payment[0].paymentStatus;
     if(status === 'SUCCESS'){
-        await OrderModel.updateOne({orderId:orderid},{paymentStatus:'Paid'})
+        await OrderModel.updateOne({orderId:orderid},{paymentStatus:'Paid'});
+        const order = await OrderModel.findById(orderid).populate(user).exec();
+        await transporter.sendMail({
+            from: process.env.EMAIL_USER,
+            to: "midhun2031@gmail.com", // Change to your email
+            subject: `New Order Placed - ${order.orderId}`,
+            html: `
+                <h2>New Order Details</h2>
+                 <p><strong>Customer Phone:</strong> ${order.address.name}</p>
+                <p><strong>Customer Name:</strong> ${order.address.name}</p>
+                <p><strong>Order ID:</strong> ${order.orderId}</p>
+                <p><strong>Payment Method:</strong> ${order.paymentMethod}</p>
+                <p><strong>Total Amount:</strong> Rs. ${order.totalAmount}</p>
+                <p><strong>Pincode:</strong> ${order.pincode}</p>
+                <p><strong>Address:</strong> ${order.address.location}</p>
+                <p><strong>City:</strong> ${order.address.city}</p>
+                 <p><strong>Alternate Mobile:</strong> ${order.address.alternateMobile}</p>
+                <h3>Products Ordered:</h3>
+                <ul>
+                    ${order.products.map((item) => `
+                        <li>
+                            <strong>Product:</strong> ${item.product.name} <br />
+                            <strong>Size:</strong> ${item.selectedSize} <br />
+                            <strong>Quantity:</strong> ${item.quantity}
+                        </li>
+                    `).join("")}
+                </ul>
+                <p style="color: red;"><strong>Please review and process the order.</strong></p>
+            `,
+        });
+      
     }
     else{
         await OrderModel.deleteOne({orderId:orderid})
