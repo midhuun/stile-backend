@@ -279,7 +279,7 @@ app.post("/user/order",userAuth,async(req,res)=>{
             paymentMethod:req.body.paymentMethod,
             pincode:req.body.pincode,
             address:req.body.address,
-            email:req.body.email,
+            email:req.body?.email,
             alternateMobile:req.body.alternateMobile,
             orderId:req.body.orderId ||`ORDER_${new Date().getTime()}`,
             paymentStatus:'Pending',
