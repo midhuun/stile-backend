@@ -434,7 +434,7 @@ app.post("/webhook",async(req,res)=>{
 app.post("/payment/status/:orderid",async(req,res)=>{
     try{
     const orderid = req.params.orderid;
-    const payment = await PaymentStatus.find({ orderid })
+    const payment = await PaymentStatus.findOne({ orderid })
   .sort({ updatedAt: -1 }) 
   .limit(1)
   .exec();
