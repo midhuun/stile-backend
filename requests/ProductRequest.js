@@ -22,10 +22,9 @@ app.use(express.json());
 const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
 const productRequest = async(req,res)=>{
     try{
-    const products = await ProductModel.find().populate('category');
     const subCategories = await SubCategoryModel.find().populate('category').populate('products');
     const categories = await CategoryModel.find().populate({path:'subcategories',populate:{path:'products',model:'Product'}});;
-            res.status(201).send({products,categories,subCategories});
+            res.status(201).send({categories,subCategories});
     }
     catch(err){    
         res.status(400).send("Error fetching products");
