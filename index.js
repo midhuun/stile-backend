@@ -282,7 +282,7 @@ app.post("/user/order",userAuth,async(req,res)=>{
             email:req.body.email,
             alternateMobile:req.body.alternateMobile,
             orderId:req.body.orderId ||`ORDER_${new Date().getTime()}`,
-            paymentStatus:'pending',
+            paymentStatus:'Pending',
             });
             await user.orders.push(order)
             await user.save();
