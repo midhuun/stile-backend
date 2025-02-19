@@ -282,15 +282,13 @@ app.post("/user/order",userAuth,async(req,res)=>{
             email:req.body.email,
             alternateMobile:req.body.alternateMobile,
             orderId:req.body.orderId ||`ORDER_${new Date().getTime()}`,
-            paymentStatus:req.body.paymentMethod === 'cod' ? 'Paid' : 'Pending',
+            paymentStatus:req.body.paymentMethod === 'pending',
             });
-          
             await user.orders.push(order)
-          
             await user.save();
             await order.save();
             if(req.body.paymentMethod === 'cod'){
-            await PaymentStatus.create({orderid,paymentStatus:"PAID"});
+            await PaymentStatus.create({orderId,paymentStatus:"SUCCESS"});
             await transporter.sendMail({
                 from: process.env.EMAIL_USER,
                 to: "midhun2031@gmail.com", // Change to your email
