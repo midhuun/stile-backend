@@ -443,7 +443,7 @@ app.post("/payment/status/:orderid",async(req,res)=>{
     const status = payment[0].paymentStatus;
     if(status === 'SUCCESS'){
         await OrderModel.updateOne({orderId:orderid},{paymentStatus:'Paid'});
-        const order = await OrderModel.findById(orderid).populate(user).exec();
+        const order = await OrderModel.findById(orderid).populate('user').exec();
         await transporter.sendMail({
             from: process.env.EMAIL_USER,
             to: "midhun2031@gmail.com", // Change to your email
