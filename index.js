@@ -439,11 +439,13 @@ app.post("/payment/status/:orderid",async(req,res)=>{
   .limit(1)
   .exec();
    console.log(payment);
+   res.send(payment);
    if(payment){
     const status = payment.paymentStatus;
     if(status === 'SUCCESS'){
         await OrderModel.updateOne({orderId:orderid},{paymentStatus:'Paid'});
         const order = await OrderModel.findOne({orderId:orderid}).populate('user').exec();
+        console.log(order);
         await transporter.sendMail({
             from: process.env.EMAIL_USER,
             to: "midhun2031@gmail.com", // Change to your email
@@ -477,7 +479,6 @@ app.post("/payment/status/:orderid",async(req,res)=>{
     else{
         await OrderModel.deleteOne({orderId:orderid})
     }
-    res.send(payment);
    }
    else{
     res.status(404).send({message:"Order not found"})
