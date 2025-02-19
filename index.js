@@ -280,7 +280,7 @@ app.post("/user/order",userAuth,async(req,res)=>{
             pincode:req.body.pincode,
             address:req.body.address,
             email:req.body?.email,
-            alternateMobile:req.body.alternateMobile,
+            alternateMobile:req?.body?.alternateMobile,
             orderId:req.body.orderId ||`ORDER_${new Date().getTime()}`,
             paymentStatus:'Pending',
             });
@@ -303,7 +303,9 @@ app.post("/user/order",userAuth,async(req,res)=>{
                     <p><strong>Pincode:</strong> ${order.pincode}</p>
                     <p><strong>Address:</strong> ${order.address.location}</p>
                     <p><strong>City:</strong> ${order.address.city}</p>
+                    ${order.address.alternateMobile &&
                      <p><strong>Alternate Mobile:</strong> ${order.address.alternateMobile}</p>
+                     }
                     <h3>Products Ordered:</h3>
                     <ul>
                         ${req.body.products.map((item) => `
@@ -459,7 +461,9 @@ app.post("/payment/status/:orderid",async(req,res)=>{
                 <p><strong>Pincode:</strong> ${order.pincode}</p>
                 <p><strong>Address:</strong> ${order.address.location}</p>
                 <p><strong>City:</strong> ${order.address.city}</p>
-                 <p><strong>Alternate Mobile:</strong> ${order.address.alternateMobile}</p>
+               ${order.address.alternateMobile &&
+                     <p><strong>Alternate Mobile:</strong> ${order.address.alternateMobile}</p>
+                     }
                 <h3>Products Ordered:</h3>
                 <ul>
                     ${order.products.map((item) => `
@@ -501,6 +505,16 @@ app.post("/payment/status/:orderid",async(req,res)=>{
     // else{
     //     return res.status(400).json({message:"Payment is pending",success:true})
     // }
+})
+app.get("/subcategoryProducts/:subid",async(req,res)=>{
+    try{
+        const subid=req.params.subid;
+        const products=await ProductModel.find({subcategory:subid})
+        res.send(products);
+    }
+    catch(error){
+     res.send({message:"Error finding products"})
+    }
 })
 app.patch("/admin/update/:field",async(req,res)=>{
     const {field} = req.params;
