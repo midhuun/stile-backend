@@ -357,7 +357,6 @@ app.post("/user/payment",async(req,res)=>{
         customer_name: name,
         customer_phone: phone,
         customer_id:customerID,
-        customer_phone:phone
       };
       const payload = {
         order_id: orderID,
@@ -478,6 +477,7 @@ app.post("/payment/status/:orderid",async(req,res)=>{
     }
     else{
         await OrderModel.deleteOne({orderId:orderid})
+        res.status(400).send({message:"Order Not found"})
     }
    }
    else{
