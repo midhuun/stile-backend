@@ -440,7 +440,7 @@ app.post("/payment/status/:orderid",async(req,res)=>{
   .exec();
    console.log(payment);
    if(payment){
-    const status = payment[0].paymentStatus;
+    const status = payment.paymentStatus;
     if(status === 'SUCCESS'){
         await OrderModel.updateOne({orderId:orderid},{paymentStatus:'Paid'});
         const order = await OrderModel.findById(orderid).populate('user').exec();
