@@ -304,7 +304,7 @@ app.post("/user/order",userAuth,async(req,res)=>{
                     <p><strong>Address:</strong> ${order.address.location}</p>
                     <p><strong>City:</strong> ${order.address.city}</p>
                     ${order.address.alternateMobile &&
-                     <p><strong>Alternate Mobile:</strong> ${order.address.alternateMobile}</p>
+                     `<p><strong>Alternate Mobile:</strong> ${order.address.alternateMobile}</p>`
                      }
                     <h3>Products Ordered:</h3>
                     <ul>
@@ -462,7 +462,7 @@ app.post("/payment/status/:orderid",async(req,res)=>{
                 <p><strong>Address:</strong> ${order.address.location}</p>
                 <p><strong>City:</strong> ${order.address.city}</p>
                ${order.address.alternateMobile &&
-                     <p><strong>Alternate Mobile:</strong> ${order.address.alternateMobile}</p>
+                    ` <p><strong>Alternate Mobile:</strong> ${order.address.alternateMobile}</p>`
                      }
                 <h3>Products Ordered:</h3>
                 <ul>
