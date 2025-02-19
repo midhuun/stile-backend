@@ -290,6 +290,7 @@ app.post("/user/order",userAuth,async(req,res)=>{
             await user.save();
             await order.save();
             if(req.body.paymentMethod === 'cod'){
+            await PaymentStatus.create({orderid,paymentStatus:"PAID"});
             await transporter.sendMail({
                 from: process.env.EMAIL_USER,
                 to: "midhun2031@gmail.com", // Change to your email
