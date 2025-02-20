@@ -397,13 +397,14 @@ app.get("/verify/payment/:orderid", async (req, res) => {
     try {
       const response = await Cashfree.PGOrderFetchPayments(version, orderid);
       const paymentStatus = response?.data?.[0]?.payment_status;
-      
+      if(response.status === 200){
+
+      }
       console.log("Verify Status:", paymentStatus);
   
       if (!paymentStatus) {
         return res.status(400).json({ message: "Invalid response from payment gateway", success: false });
       }
-  
       const statusMap = {
         SUCCESS: { status: 200, message: "Payment done successfully", success: true },
         NOT_ATTEMPTED: { status: 200, message: "Try to pay using the payment link", success: false },
@@ -413,7 +414,6 @@ app.get("/verify/payment/:orderid", async (req, res) => {
         PENDING: { status: 202, message: "Payment is Pending!", success: false },
         VOID: { status: 400, message: "Error!", success: false },
       };
-  
       const result = statusMap[paymentStatus] || { status: 400, message: "Unknown error", success: false };
   
       return res.status(result.status).json({ message: result.message, success: result.success });
@@ -432,6 +432,16 @@ app.post("/webhook",async(req,res)=>{
     await PaymentStatus.create({orderid,paymentStatus:paymentstatus});
     res.send({status:200})
 })
+app.get("/alluser/orders",async(req,res)=>{
+    try{
+    const orders = await OrderModel.find({}).populate({path:'user'}).populate({path:'products.product'});
+    res.send(orders);
+    }
+    catch(err){
+        console.log(err);
+        res.send({message:"Error"})
+    }
+})
 app.post("/payment/status/:orderid",async(req,res)=>{
     try{
     const orderid = req.params.orderid;
@@ -439,45 +449,47 @@ app.post("/payment/status/:orderid",async(req,res)=>{
   .sort({ updatedAt: -1 }) 
   .limit(1)
   .exec();
-   console.log(payment);
    res.send(payment);
    if(payment){
     const status = payment.paymentStatus;
     if(status === 'SUCCESS'){
-        await OrderModel.updateOne({orderId:orderid},{paymentStatus:'Paid'});
-        const order = await OrderModel.findOne({orderId:orderid}).populate('user').exec();
-        console.log(order);
-        await transporter.sendMail({
-            from: process.env.EMAIL_USER,
-            to: "midhun2031@gmail.com", // Change to your email
-            subject: `New Order Placed - ${order.orderId}`,
-            html: `
-                <h2>New Order Details</h2>
-                 <p><strong>Customer Phone:</strong> ${order.address.name}</p>
-                <p><strong>Customer Name:</strong> ${order.address.name}</p>
-                <p><strong>Order ID:</strong> ${order.orderId}</p>
-                <p><strong>Payment Method:</strong> ${order.paymentMethod}</p>
-                <p><strong>Total Amount:</strong> Rs. ${order.totalAmount}</p>
-                <p><strong>Pincode:</strong> ${order.pincode}</p>
-                <p><strong>Address:</strong> ${order.address.location}</p>
-                <p><strong>City:</strong> ${order.address.city}</p>
-               ${order.address.alternateMobile &&
-                    ` <p><strong>Alternate Mobile:</strong> ${order.address.alternateMobile}</p>`
-                     }
-                <h3>Products Ordered:</h3>
-                <ul>
-                    ${order.products.map((item) => `
-                        <li>
-                            <strong>Product:</strong> ${item.product.name} <br />
-                            <strong>Size:</strong> ${item.selectedSize} <br />
-                            <strong>Quantity:</strong> ${item.quantity}
-                        </li>
-                    `).join("")}
-                </ul>
-                <p style="color: red;"><strong>Please review and process the order.</strong></p>
-            `,
-        });
-      
+        const order = await OrderModel.findOne({orderId:orderid}).populate({path:'user'}).populate({path:'products.product'}).exec();
+        if (order.paymentStatus === 'Pending'){
+            await OrderModel.updateOne({orderId:orderid},{paymentStatus:'Paid'});
+            await transporter.sendMail({
+                from: process.env.EMAIL_USER,
+                to: "support@stilesagio.com", // Change to your email
+                cc:"midhun2031@gmail.com",
+                subject: `New Order Placed - ${order.orderId}`,
+                html: `
+                    <h2>New Order Details</h2>
+                     <p><strong>Customer Phone:</strong> ${order.user.phone}</p>
+                    <p><strong>Customer Name:</strong> ${order.address.name}</p>
+                    <p><strong>Order ID:</strong> ${order.orderId}</p>
+                    <p><strong>Payment Method:</strong> ${order.paymentMethod.toUpperCase()}</p>
+                    <p><strong>Total Amount:</strong> Rs. ${order.totalAmount}</p>
+                    <p><strong>Pincode:</strong> ${order.pincode}</p>
+                    <p><strong>Address:</strong> ${order.address.location}</p>
+                    <p><strong>City:</strong> ${order.address.city}</p>
+                   ${order.address.alternateMobile &&
+                        ` <p><strong>Alternate Mobile:</strong> ${order.address.alternateMobile}</p>`
+                         }
+                    <h3>Products Ordered:</h3>
+                    <ul>
+                        ${order.products.map((item) => `
+                            <li>
+                                <strong>Product:</strong> ${item.product.name} <br />
+                                <strong>Size:</strong> ${item.selectedSize} <br />
+                                <strong>Quantity:</strong> ${item.quantity}
+                            </li>
+                        `).join("")}
+                    </ul>
+                    <p style="color: red;"><strong>Please review and process the order.</strong></p>
+                `,
+            });
+          
+        }
+       
     }
     else{
         await OrderModel.deleteOne({orderId:orderid})
