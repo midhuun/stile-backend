@@ -80,7 +80,7 @@ app.post("/contact", async (req, res) => {
       // Auto-reply to user
       await transporter.sendMail({
         from: process.env.EMAIL_USER,
-        to: email,
+        to: 'email',
         subject: "Thanks for Contacting Stile Sagio",
         text: `Dear ${name},\n\nThanks for contacting Stile Sagio. We will reach you shortly.\n\nBest Regards,\nStile Sagio Team`,
       });
@@ -291,12 +291,13 @@ app.post("/user/order",userAuth,async(req,res)=>{
             await PaymentStatus.create({orderid:req.body.orderId,paymentStatus:"SUCCESS"});
             await transporter.sendMail({
                 from: process.env.EMAIL_USER,
-                to: "midhun2031@gmail.com", // Change to your email
+                to: "support@stilesagio.com",
+                cc:"midhun2031@gmail.com",
                 subject: `New Order Placed - ${order.orderId}`,
                 html: `
                     <h2>New Order Details</h2>
                     <p><strong>Customer Name:</strong> ${req.body.address.name}</p>
-                    <p><strong>Email:</strong> ${user.email}</p>
+                    <p><strong>Email:</strong> ${user.phone}</p>
                     <p><strong>Order ID:</strong> ${order.orderId}</p>
                     <p><strong>Payment Method:</strong> ${order.paymentMethod}</p>
                     <p><strong>Total Amount:</strong> Rs. ${order.totalAmount}</p>
