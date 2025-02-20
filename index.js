@@ -20,6 +20,7 @@ const path = require("path");
 const { OtpModel } = require("./model/OTPModel");
 const PaymentStatus = require("./model/PaymentStatus");
 env.config();
+
 app.use(cors({
     origin: [
       "https://www.stilesagio.com",
@@ -47,6 +48,10 @@ app.post("/user/login",loginUser);
 app.post("/user/logout",logoutUser);
 app.get("/",(req,res)=>{
     res.send("Nodejs Running")
+})
+app.get("/allproducts",async(req,res)=>{
+   const products  = await ProductModel.find().populate('category').populate('subcategory');
+   res.json(products);
 })
 const transporter = nodemailer.createTransport({
     service:'gmail',
