@@ -93,6 +93,7 @@ app.post("/reviews", async (req, res) => {
         catch(err){
             console.log(err);
         }
+  })
 // Contact API
 app.post("/contact", async (req, res) => {
     const { name, email, message,product,quantity } = req.body;
