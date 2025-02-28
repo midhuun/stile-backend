@@ -82,12 +82,12 @@ app.get("/reviews/:productid", async (req, res) => {
 })
 app.post("/reviews", async (req, res) => { 
     try{
-        const {rating,review,product,user,name,title} = req.body;
+        const {rating,product,user,name,title,content} = req.body;
         const existingReview = await ReviewModel.findOne({product:product,user:user});
         if(existingReview){
             res.status(400).json({message:"You've already reviewed this Product"})
         }
-        const newreview = await new ReviewModel({rating,review,product,user,name,title});
+        const newreview = await new ReviewModel({rating,content,product,user,name,title});
         await newreview.save();
         res.json(newreview);
         }
