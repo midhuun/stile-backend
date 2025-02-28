@@ -73,6 +73,7 @@ app.get("/reviews/:productid", async (req, res) => {
     try{
      const productid = req.params.productid;
     const reviews = await ReviewModel.find({product:productid}).populate('user');
+    
     res.json(reviews)
     }
     catch(err){
@@ -81,12 +82,12 @@ app.get("/reviews/:productid", async (req, res) => {
 })
 app.post("/reviews", async (req, res) => { 
     try{
-        const {rating,review,product,user,name} = req.body;
+        const {rating,review,product,user,name,title} = req.body;
         const existingReview = await ReviewModel.findOne({product:product,user:user});
         if(existingReview){
             res.status(400).json({message:"You've already reviewed this Product"})
         }
-        const newreview = await new ReviewModel({rating,review,product,user,name});
+        const newreview = await new ReviewModel({rating,review,product,user,name,title});
         await newreview.save();
         res.json(newreview);
         }
