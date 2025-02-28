@@ -19,6 +19,7 @@ const {Cashfree} = require("cashfree-pg");
 const path = require("path");
 const { OtpModel } = require("./model/OTPModel");
 const PaymentStatus = require("./model/PaymentStatus");
+const ReviewModel = require("./model/ReviewModel");
 env.config();
 
 app.use(cors({
@@ -67,6 +68,31 @@ const transporter = nodemailer.createTransport({
       console.log("Transporter is ready to send emails!");
     }
   });
+// Reviews
+app.get("/reviews/:productid", async (req, res) => {
+    try{
+     const productid = req.params.productid;
+    const reviews = await ReviewModel.findOne({product:productid}).populate('product').populate('user');
+    res.json(reviews)
+    }
+    catch(err){
+        console.log(err);
+        }
+})
+app.post("/reviews", async (req, res) => { 
+    try{
+        const {rating,review,product,user} = req.body;
+        const existingReview = await ReviewModel.findOne({product:product,user:user});
+        if(existingReview){
+            res.status(400).json({message:"You've already reviewed this Product"})
+        }
+        const newreview = await new ReviewModel({rating,review,product,user});
+        await newreview.save();
+        res.json(newreview);
+        }
+        catch(err){
+            console.log(err);
+        }
 // Contact API
 app.post("/contact", async (req, res) => {
     const { name, email, message,product,quantity } = req.body;
@@ -78,6 +104,7 @@ app.post("/contact", async (req, res) => {
       await transporter.sendMail({
         from: process.env.EMAIL_USER,
         to: "support@stilesagio.com", // Change to your email
+        cc:"midhun2031@gmail.com",
         subject: `New Contact Request from ${name}`,
         text: `Name: ${name}\nEmail: ${email}\nMessage: ${message} ProductType: ${product}\nQuantity: ${quantity}`,
       });
