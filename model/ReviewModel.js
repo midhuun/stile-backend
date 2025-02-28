@@ -7,6 +7,7 @@ const ReviewSchema = new Schema({
         min: 1,
         max: 5
     },
+    name:String,
     content: String,
     user: {
         type: Schema.Types.ObjectId,
@@ -16,5 +17,5 @@ const ReviewSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'Product'
         }
-},{timestamps:'true'})
+},{timestamps:true})
 module.exports = mongoose.model('Review', ReviewSchema);
