@@ -20,6 +20,7 @@ const path = require("path");
 const { OtpModel } = require("./model/OTPModel");
 const PaymentStatus = require("./model/PaymentStatus");
 const ReviewModel = require("./model/ReviewModel");
+const { default: mongoose } = require("mongoose");
 env.config();
 
 app.use(cors({
@@ -74,7 +75,16 @@ app.get("/reviews/:productid", async (req, res) => {
      const productid = req.params.productid;
     const reviews = await ReviewModel.find({product:productid}).populate('user');
     const reviewCount = await ReviewModel.countDocuments({product:productid});
-    res.json({reviews,reviewCount})
+    const averageRating = await ReviewModel.aggregate([
+        {$match:{product:new mongoose.Types.ObjectId(productid)}},
+        {$group:{_id:"$product",averageRating:{$avg:"$rating"}}}
+    ])
+    if(averageRating.length>0){
+        res.json({reviews,reviewCount,averageRating:averageRating[0].averageRating})
+    }
+    else{
+    res.json({reviews,reviewCount,averageRating});
+    }
     }
     catch(err){
         console.log(err);
