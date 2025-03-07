@@ -73,8 +73,8 @@ app.get("/reviews/:productid", async (req, res) => {
     try{
      const productid = req.params.productid;
     const reviews = await ReviewModel.find({product:productid}).populate('user');
-    
-    res.json(reviews)
+    const reviewCount = await ReviewModel.countDocuments({product:productid});
+    res.json({reviews,reviewCount})
     }
     catch(err){
         console.log(err);
