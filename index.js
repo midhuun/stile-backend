@@ -27,7 +27,7 @@ const ReviewModel = require('./model/ReviewModel');
 const { default: mongoose } = require('mongoose');
 const sitemap = require('./utils/sitemap');
 env.config();
-
+app.use(express.static(path.join(__dirname, 'public')));
 app.use(
   cors({
     origin: [
