@@ -77,6 +77,17 @@ transporter.verify((error, success) => {
     console.log('Transporter is ready to send emails!');
   }
 });
+app.get('/sitemap.xml', (req, res) => {
+  const sitemapPath = path.join(__dirname, 'sitemap.xml');
+
+  // Check if the file exists
+  if (fs.existsSync(sitemapPath)) {
+    res.header('Content-Type', 'application/xml');
+    res.sendFile(sitemapPath);
+  } else {
+    res.status(404).send('Sitemap not found');
+  }
+});
 // Reviews
 app.get('/reviews/:productid', async (req, res) => {
   try {
