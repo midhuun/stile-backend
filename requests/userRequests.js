@@ -25,9 +25,8 @@ app.use(express.json());
 const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
 const getUser = async (req, res) => {
   try {
-    const { token } = req.cookies;
+    const token = req.headers.authorization?.split(' ')[1];
     const decoded = jwt.verify(token, SECRET);
-
     const user = await UserModel.findOne({ _id: decoded.id });
     if (!user) {
       return res.status(401).send({ message: 'User not found' });
@@ -71,20 +70,20 @@ const loginUser = async (req, res) => {
       const user = await new UserModel({ phone });
       await user.save();
       const token = jwt.sign({ id: user._id }, SECRET);
-      res.cookie('token', token, {
-        secure: true,
-        sameSite: 'none',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      });
+      //   res.cookie('token', token, {
+      //     secure: true,
+      //     sameSite: 'none',
+      //     maxAge: 7 * 24 * 60 * 60 * 1000,
+      //   });
       console.log(user);
       res.status(200).send({ message: token, userexists: false });
     } else {
       const token = await jwt.sign({ id: isuser._id }, SECRET);
-      res.cookie('token', token, {
-        secure: true,
-        sameSite: 'none',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      });
+      //   res.cookie('token', token, {
+      //     secure: true,
+      //     sameSite: 'none',
+      //     maxAge: 7 * 24 * 60 * 60 * 1000,
+      //   });
       res.status(200).send({ message: token, userexists: true });
     }
   } catch (err) {
