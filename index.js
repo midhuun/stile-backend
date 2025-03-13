@@ -154,7 +154,7 @@ app.post('/contact', async (req, res) => {
 // Cart API
 app.post('/user/addToCart', userAuth, async (req, res) => {
   try {
-    const { token } = req.cookies;
+    const token = req.headers.authorization?.split(' ')[1];
     const product = req.body.productdata;
     const decoded = jwt.verify(token, SECRET);
     const user = await UserModel.findOne({ _id: decoded.id });
@@ -176,7 +176,7 @@ app.post('/user/addToCart', userAuth, async (req, res) => {
 });
 app.get('/user/favourites', userAuth, async (req, res) => {
   try {
-    const { token } = req.cookies;
+    const token = req.headers.authorization?.split(' ')[1];
     const decoded = jwt.verify(token, SECRET);
     const user = await UserModel.findOne({ _id: decoded.id }).populate({ path: 'favourites' });
 
@@ -187,7 +187,7 @@ app.get('/user/favourites', userAuth, async (req, res) => {
 });
 app.post('/user/addToFavourites', userAuth, async (req, res) => {
   try {
-    const { token } = req.cookies;
+    const token = req.headers.authorization?.split(' ')[1];
 
     const { id } = req.body;
     const decoded = jwt.verify(token, SECRET);
@@ -207,7 +207,7 @@ app.post('/user/addToFavourites', userAuth, async (req, res) => {
 
 app.post('/user/removeFromFavourites', userAuth, async (req, res) => {
   try {
-    const { token } = req.cookies;
+    const token = req.headers.authorization?.split(' ')[1];
     const { productId } = req.body;
     const decoded = jwt.verify(token, SECRET);
     const user = await UserModel.findOne({ _id: decoded.id });
@@ -220,7 +220,7 @@ app.post('/user/removeFromFavourites', userAuth, async (req, res) => {
 });
 app.post('/user/removeFromCart', userAuth, async (req, res) => {
   try {
-    const { token } = req.cookies;
+    const token = req.headers.authorization?.split(' ')[1];
     const product = req.body.productdata;
     const decoded = jwt.verify(token, SECRET);
     const user = await UserModel.findOne({ _id: decoded.id });
@@ -246,7 +246,7 @@ app.post('/user/removeFromCart', userAuth, async (req, res) => {
 });
 app.delete('/user/clearCart', userAuth, async (req, res) => {
   try {
-    const { token } = req.cookies;
+    const token = req.headers.authorization?.split(' ')[1];
     const decoded = jwt.verify(token, SECRET);
     const user = await UserModel.findOne({ _id: decoded.id });
     user.cart = [];
@@ -259,7 +259,7 @@ app.delete('/user/clearCart', userAuth, async (req, res) => {
 });
 app.post('/user/deleteFromCart', userAuth, async (req, res) => {
   try {
-    const { token } = req.cookies;
+    const token = req.headers.authorization?.split(' ')[1];
     const productdata = req.body.productdata;
     const decoded = jwt.verify(token, SECRET);
     const user = await UserModel.findOne({ _id: decoded.id });
@@ -273,7 +273,7 @@ app.post('/user/deleteFromCart', userAuth, async (req, res) => {
 });
 app.get('/user/cart', userAuth, async (req, res) => {
   try {
-    const { token } = req.cookies;
+    const token = req.headers.authorization?.split(' ')[1];
     const decoded = jwt.verify(token, SECRET);
     const user = await UserModel.findOne({ _id: decoded.id }).populate({ path: 'cart.product' });
     res.send({ cart: user.cart });
@@ -296,7 +296,7 @@ app.get('/order/:orderid', userAuth, async (req, res) => {
 });
 app.get('/user/orders', userAuth, async (req, res) => {
   try {
-    const { token } = req.cookies;
+    const token = req.headers.authorization?.split(' ')[1];
     const decoded = jwt.verify(token, SECRET);
     console.log(decoded);
     const userWithOrders = await UserModel.findOne({ _id: decoded.id })
@@ -319,7 +319,7 @@ app.post('/auth/truecaller/callback', (req, res) => {
 });
 app.post('/user/order', userAuth, async (req, res) => {
   try {
-    const { token } = req.cookies;
+    const token = req.headers.authorization?.split(' ')[1];
     const decoded = jwt.verify(token, SECRET);
     const user = await UserModel.findOne({ _id: decoded.id });
     const order = await new OrderModel({
@@ -778,7 +778,7 @@ app.get('/products', productRequest);
 app.get('/items/:itemName', deleteRequest);
 app.get('/product/:name', uniqueProductRequest);
 app.get('/api/cart', userAuth, async (req, res) => {
-  const { token } = req.cookies;
+  const token = req.headers.authorization?.split(' ')[1];
   const decoded = jwt.verify(token, SECRET);
   try {
     const user = await UserModel.findOne({ _id: decoded.id }).populate({ path: 'cart' });
