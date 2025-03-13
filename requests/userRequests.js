@@ -77,7 +77,7 @@ const loginUser = async (req, res) => {
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
       console.log(user);
-      res.status(200).send({ message: 'User Created', userexists: false });
+      res.status(200).send({ message: token, userexists: false });
     } else {
       const token = await jwt.sign({ id: isuser._id }, SECRET);
       res.cookie('token', token, {
@@ -85,7 +85,7 @@ const loginUser = async (req, res) => {
         sameSite: 'none',
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
-      res.status(200).send({ message: 'User Exists', userexists: true });
+      res.status(200).send({ message: token, userexists: true });
     }
   } catch (err) {
     console.log(err);
