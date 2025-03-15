@@ -317,7 +317,7 @@ app.get('/user/orders', userAuth, async (req, res) => {
 app.post('/auth/truecaller/callback', (req, res) => {
   res.send({ message: 'Logged in' });
 });
-app.post('/user/order', userAuth, async (req, res) => {
+app.post('/user/order', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     const decoded = jwt.verify(token, SECRET);
@@ -339,13 +339,15 @@ app.post('/user/order', userAuth, async (req, res) => {
     await user.save();
     await order.save();
     if (req.body.paymentMethod === 'cod') {
-      await PaymentStatus.create({ orderid: req.body.orderId, paymentStatus: 'SUCCESS' });
-      await transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: 'support@stilesagio.com',
-        cc: 'midhun2031@gmail.com',
-        subject: `New Order Placed - ${order.orderId}`,
-        html: `
+      const isDelivered = await PaymentStatus.findOne({ orderid: req.body.orderId });
+      if (!isDelivered) {
+        await PaymentStatus.create({ orderid: req.body.orderId, paymentStatus: 'SUCCESS' });
+        await transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: 'support@stilesagio.com',
+          cc: 'midhun2031@gmail.com',
+          subject: `New Order Placed - ${order.orderId}`,
+          html: `
                     <h2>New Order Details</h2>
                     <p><strong>Customer Name:</strong> ${req.body.address.name}</p>
                     <p><strong>Email:</strong> ${user.phone}</p>
@@ -375,8 +377,11 @@ app.post('/user/order', userAuth, async (req, res) => {
                     </ul>
                     <p style="color: red;"><strong>Please review and process the order.</strong></p>
                 `,
-      });
-      res.send({ message: 'Order Placed' });
+        });
+        return res.send({ message: 'Order Placed' });
+      } else {
+        return res.send({ message: 'Order Already Placed' });
+      }
     }
     res.send({ message: 'Payment Processing' });
   } catch (err) {
@@ -510,24 +515,29 @@ app.post('/payment/status/:orderid', async (req, res) => {
       .sort({ updatedAt: -1 })
       .limit(1)
       .exec();
-    res.send(payment);
-    if (payment) {
-      const status = payment.paymentStatus;
-      if (status === 'SUCCESS') {
-        const order = await OrderModel.findOne({ orderId: orderid })
-          .populate({ path: 'user' })
-          .populate({ path: 'products.product' })
-          .exec();
-        if (order.paymentStatus === 'Pending') {
-          await OrderModel.updateOne({ orderId: orderid }, { paymentStatus: 'Paid' });
-          await transporter.sendMail({
-            from: process.env.EMAIL_USER,
-            to: 'support@stilesagio.com', // Change to your email
-            cc: 'midhun2031@gmail.com',
-            subject: `New Order Placed - ${order.orderId}`,
-            html: `
+    if (!payment) {
+      return res.status(404).json({ message: 'Payment record not found', success: false });
+    }
+    const status = payment.paymentStatus;
+    if (status === 'SUCCESS') {
+      const order = await OrderModel.findOne({ orderId: orderid })
+        .populate('user')
+        .populate('products.product')
+        .exec();
+
+      if (!order) {
+        return res.status(404).json({ message: 'Order not found', success: false });
+      }
+      if (order.paymentStatus === 'Pending') {
+        await OrderModel.updateOne({ orderId: orderid }, { paymentStatus: 'Paid' });
+        await transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: 'support@stilesagio.com',
+          cc: 'midhun2031@gmail.com',
+          subject: `New Order Placed - ${order.orderId}`,
+          html: `
                     <h2>New Order Details</h2>
-                     <p><strong>Customer Phone:</strong> ${order.user.phone}</p>
+                    <p><strong>Customer Phone:</strong> ${order.user.phone}</p>
                     <p><strong>Customer Name:</strong> ${order.address.name}</p>
                     <p><strong>Order ID:</strong> ${order.orderId}</p>
                     <p><strong>Payment Method:</strong> ${order.paymentMethod.toUpperCase()}</p>
@@ -535,10 +545,11 @@ app.post('/payment/status/:orderid', async (req, res) => {
                     <p><strong>Pincode:</strong> ${order.pincode}</p>
                     <p><strong>Address:</strong> ${order.address.location}</p>
                     <p><strong>City:</strong> ${order.address.city}</p>
-                   ${
-                     order.address.alternateMobile &&
-                     ` <p><strong>Alternate Mobile:</strong> ${order.address.alternateMobile}</p>`
-                   }
+                    ${
+                      order.address.alternateMobile
+                        ? `<p><strong>Alternate Mobile:</strong> ${order.address.alternateMobile}</p>`
+                        : ''
+                    }
                     <h3>Products Ordered:</h3>
                     <ul>
                         ${order.products
@@ -555,32 +566,21 @@ app.post('/payment/status/:orderid', async (req, res) => {
                     </ul>
                     <p style="color: red;"><strong>Please review and process the order.</strong></p>
                 `,
-          });
-        }
-      } else {
-        await OrderModel.deleteOne({ orderId: orderid });
-        res.status(400).send({ message: 'Order Not found' });
+        });
       }
+
+      return res.status(200).json({ message: 'Payment Successful', success: true });
+    } else if (status === 'FAILED') {
+      return res.status(400).json({ message: 'Payment Failed', success: false });
     } else {
-      res.status(404).send({ message: 'Order not found' });
+      return res.status(202).json({ message: 'Payment Pending', success: false });
     }
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: error, success: false });
+    return res.status(500).json({ message: 'Server Error', success: false });
   }
-  // if(!payment){
-  //     return res.status(202).json({ message: "Payment Pending", success: false });
-  // }
-  // if(payment.paymentStatus === 'FAILED'){
-  //     return res.status(400).json({message:"FAILED",success:true})
-  // }
-  // if(payment.paymentStatus === 'SUCCESS'){
-  //     return res.status(200).json({message:"SUCCESS",success:true})
-  // }
-  // else{
-  //     return res.status(400).json({message:"Payment is pending",success:true})
-  // }
 });
+
 app.get('/subcategoryProducts/:subid', async (req, res) => {
   try {
     const subid = req.params.subid;
