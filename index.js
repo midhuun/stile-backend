@@ -173,7 +173,7 @@ app.post('/track-order', async (req, res) => {
       }
     );
     const order_data = await order_res.json();
-    res.json(order_data[0][order_id]?.tracking_data.shipment_track);
+    res.json(order_data[0]);
   } catch (err) {
     console.log(err);
   }
