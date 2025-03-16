@@ -151,6 +151,33 @@ app.post('/contact', async (req, res) => {
     res.status(500).json({ error: 'Failed to send message' });
   }
 });
+app.post('/track-order', async (req, res) => {
+  try {
+    const { order_id } = req.body;
+    const auth_res = await fetch('https://apiv2.shiprocket.in/v1/external/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email: 'midhuun.2003@gmail.com', password: 'Midhun@123' }),
+    });
+    const data = await auth_res.json();
+    const { token } = data;
+    const order_res = await fetch(
+      `https://apiv2.shiprocket.in/v1/external/courier/track?order_id=${order_id}`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    const order_data = await order_res.json();
+    res.json(order_data[0][order_id]?.tracking_data.shipment_track);
+  } catch (err) {
+    console.log(err);
+  }
+});
 // Cart API
 app.post('/user/addToCart', userAuth, async (req, res) => {
   try {
@@ -529,6 +556,16 @@ app.post('/payment/status/:orderid', async (req, res) => {
         return res.status(404).json({ message: 'Order not found', success: false });
       }
       if (order.paymentStatus === 'Pending') {
+        const res = await fetch('https://apiv2.shiprocket.in/v1/external/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email: 'midhuun.2003@gmail.com', password: 'Midhun@123' }),
+        });
+        const data = await res.json();
+        const { token } = data;
+
         await OrderModel.updateOne({ orderId: orderid }, { paymentStatus: 'Paid' });
         await transporter.sendMail({
           from: process.env.EMAIL_USER,
