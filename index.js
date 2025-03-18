@@ -580,9 +580,7 @@ app.post('/payment/status/:orderid', async (req, res) => {
         const { token } = data;
         const now = new Date();
         const formattedDate = now.toISOString().slice(0, 16).replace('T', ' ');
-        const pincodeRes = await fetch(
-          `GET http://www.postalpincode.in/api/pincode/${order.pincode}`
-        );
+        const pincodeRes = await fetch(`http://www.postalpincode.in/api/pincode/${order.pincode}`);
         const pincodeData = await pincodeRes.json();
 
         const createRes = await fetch(
@@ -659,7 +657,9 @@ app.post('/payment/status/:orderid', async (req, res) => {
                 `,
         });
       }
-      return res.status(200).json({ message: 'Payment Successful', success: true });
+      return res
+        .status(200)
+        .json({ message: 'Payment Successful', success: true, payment: order.paymentMethod });
     } else if (status === 'FAILED') {
       return res.status(400).json({ message: 'Payment Failed', success: false });
     } else {
