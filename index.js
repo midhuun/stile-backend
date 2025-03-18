@@ -561,6 +561,7 @@ app.post('/payment/status/:orderid', async (req, res) => {
           selling_price: product.product.price,
         };
       });
+      let createData;
       const weight =
         orderedProducts.reduce((acc, product) => {
           return acc + product.units * 230;
@@ -598,10 +599,11 @@ app.post('/payment/status/:orderid', async (req, res) => {
                 pickup_location: 'Primary',
                 billing_customer_name: order.address?.name || 'User',
                 billing_address: order.address?.location,
-                billing_phone_number: order.address?.phone,
+                billing_phone: order.user.phone,
                 billing_email: order?.email || 'midhun2031@gmail.com',
                 billing_state: pincodeData?.PostOffice[0].State,
                 billing_city: pincodeData?.PostOffice[0].District,
+                billing_country: 'India',
                 billing_pincode: order?.pincode,
                 shipping_is_billing: true,
                 order_items: orderedProducts,
@@ -614,7 +616,7 @@ app.post('/payment/status/:orderid', async (req, res) => {
               }),
             }
           );
-          const createData = await createRes.json();
+          createData = await createRes.json();
           console.log(createData);
         } catch (err) {
           console.log(err);
@@ -663,7 +665,7 @@ app.post('/payment/status/:orderid', async (req, res) => {
       }
       return res
         .status(200)
-        .json({ message: 'Payment Successfull', success: true, payment: order.paymentMethod });
+        .json({ message: createData, success: true, payment: order.paymentMethod });
     } else if (status === 'FAILED') {
       return res.status(400).json({ message: 'Payment Failed', success: false });
     } else {
