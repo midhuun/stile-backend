@@ -4,6 +4,7 @@ const cors = require('cors');
 const env = require('dotenv');
 const { ProductModel, SubCategoryModel, CategoryModel } = require('../model/ProductModel');
 const cookieParser = require('cookie-parser');
+const compression = require('compression');
 env.config();
 app.use(
   cors({

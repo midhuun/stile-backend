@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 const env = require('dotenv');
+const compression = require('compression');
 const nodemailer = require('nodemailer');
 const { connectTODB } = require('./config/database');
 const { ProductModel, SubCategoryModel, CategoryModel } = require('./model/ProductModel');
