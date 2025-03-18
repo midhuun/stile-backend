@@ -640,6 +640,7 @@ app.post('/payment/status/:orderid', async (req, res) => {
                 pickup_location: 'Primary',
                 billing_customer_name: order.address?.name || 'User',
                 billing_address: order.address?.location,
+                billing_last_name: '',
                 billing_phone: order.user.phone,
                 billing_email: order?.email || 'midhun2031@gmail.com',
                 billing_state: pincodeData?.PostOffice?.[0]?.State || 'Unknown',
