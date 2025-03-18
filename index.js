@@ -27,6 +27,7 @@ const PaymentStatus = require('./model/PaymentStatus');
 const ReviewModel = require('./model/ReviewModel');
 const { default: mongoose } = require('mongoose');
 const sitemap = require('./utils/sitemap');
+const ShipModel = require('./model/ShipModel');
 env.config();
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(
@@ -552,7 +553,18 @@ app.post('/payment/status/:orderid', async (req, res) => {
         .populate('user')
         .populate('products.product')
         .exec();
-
+      const orderedProducts = order?.products.map((product) => {
+        return {
+          name: product.product.name,
+          sku: product.product.slug,
+          units: product.quantity,
+          selling_price: product.product.price,
+        };
+      });
+      const weight =
+        orderedProducts.reduce((acc, product) => {
+          return acc + product.units * 230;
+        }, 0) / 1000;
       if (!order) {
         return res.status(404).json({ message: 'Order not found', success: false });
       }
@@ -566,7 +578,46 @@ app.post('/payment/status/:orderid', async (req, res) => {
         });
         const data = await res.json();
         const { token } = data;
+        const now = new Date();
+        const formattedDate = now.toISOString().slice(0, 16).replace('T', ' ');
+        const pincodeRes = await fetch(
+          `GET http://www.postalpincode.in/api/pincode/${order.pincode}`
+        );
+        const pincodeData = await pincodeRes.json();
 
+        const createRes = await fetch(
+          'https://apiv2.shiprocket.in/v1/external/orders/create/adhoc',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              order_id: orderid,
+              order_date: formattedDate,
+              pickup_location: 'Primary',
+              billing_customer_name: order.address?.name || 'User',
+              billing_address: order.address?.location,
+              billing_phone_number: order.address?.phone,
+              billing_email: order?.email || 'midhun2031@gmail.com',
+              billing_state: pincodeData?.PostOffice[0].State,
+              billing_city: pincodeData?.PostOffice[0].District,
+              billing_pincode: order?.pincode,
+              shipping_is_billing: true,
+              order_items: orderedProducts,
+              payment_method: order.paymentMethod === 'cod' ? 'COD' : 'Prepaid',
+              sub_total: order.totalAmount,
+              length: '40',
+              width: '16',
+              height: '2',
+              weight: '',
+            }),
+          }
+        );
+        const createData = await createRes.json();
+        await ShipModel.create({ ...createData, my_order_id: orderid });
+        console.log(ShipModel);
         await OrderModel.updateOne({ orderId: orderid }, { paymentStatus: 'Paid' });
         await transporter.sendMail({
           from: process.env.EMAIL_USER,
@@ -606,7 +657,6 @@ app.post('/payment/status/:orderid', async (req, res) => {
                 `,
         });
       }
-
       return res.status(200).json({ message: 'Payment Successful', success: true });
     } else if (status === 'FAILED') {
       return res.status(400).json({ message: 'Payment Failed', success: false });
