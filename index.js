@@ -441,7 +441,7 @@ app.post('/user/payment', async (req, res) => {
   const { name, phone, amount } = req.body;
   console.log('headers', req.headers);
   console.log(name, phone, amount);
-  const orderID = `ORDER_${new Date().getTime()}`;
+  const orderID = new Date().getTime();
   const customerID = `CUST_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
   const customerDetails = {
     customer_name: name,
@@ -624,7 +624,7 @@ app.post('/payment/status/:orderid', async (req, res) => {
 
         const now = new Date();
         const formattedDate = now.toISOString().slice(0, 16).replace('T', ' ');
-
+        console.log(order.orderId);
         try {
           const createRes = await fetch(
             'https://apiv2.shiprocket.in/v1/external/orders/create/adhoc',
