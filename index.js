@@ -616,8 +616,10 @@ app.post('/payment/status/:orderid', async (req, res) => {
           }
         );
         const createData = await createRes.json();
-        await ShipModel.create({ ...createData, my_order_id: orderid });
-        console.log(ShipModel);
+        if (createData) {
+          await ShipModel.create({ ...createData, my_order_id: orderid });
+          console.log(ShipModel);
+        }
         await OrderModel.updateOne({ orderId: orderid }, { paymentStatus: 'Paid' });
         await transporter.sendMail({
           from: process.env.EMAIL_USER,
