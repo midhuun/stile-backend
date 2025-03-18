@@ -612,6 +612,7 @@ app.post('/payment/status/:orderid', async (req, res) => {
                 length: '40',
                 width: '16',
                 height: '2',
+                breadth: '20',
                 weight: weight,
               }),
             }
