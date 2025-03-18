@@ -361,7 +361,7 @@ app.post('/user/order', async (req, res) => {
       address: req.body.address,
       email: req.body?.email,
       alternateMobile: req?.body?.alternateMobile,
-      orderId: req.body.orderId || `ORDER_${new Date().getTime()}`,
+      orderId: req.body.orderId || new Date().getTime(),
       paymentStatus: 'Pending',
     });
     await user.orders.push(order);
@@ -635,7 +635,7 @@ app.post('/payment/status/:orderid', async (req, res) => {
                 Authorization: `Bearer ${token}`,
               },
               body: JSON.stringify({
-                order_id: order.orderId,
+                order_id: orderid,
                 order_date: formattedDate,
                 pickup_location: 'Primary',
                 billing_customer_name: order.address?.name || 'User',
@@ -662,6 +662,7 @@ app.post('/payment/status/:orderid', async (req, res) => {
           // if (!createRes.ok) throw new Error('Failed to create order with Shiprocket');
 
           createData = await createRes.json();
+          console.log(createData);
         } catch (error) {
           console.error('Error creating order in Shiprocket:', error);
           return res.status(500).json({ message: error, success: false });

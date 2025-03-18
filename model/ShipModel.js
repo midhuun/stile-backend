@@ -4,7 +4,6 @@ const ShipmentSchema = new Schema({
   my_order_id: String,
   order_id: {
     type: Number,
-    required: true,
   },
   shipment_id: {
     type: Number,
