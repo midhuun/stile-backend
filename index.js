@@ -592,7 +592,7 @@ app.post('/payment/status/:orderid', async (req, res) => {
               Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({
-              order_id: orderid,
+              order_id: order.orderId,
               order_date: formattedDate,
               pickup_location: 'Primary',
               billing_customer_name: order.address?.name || 'User',
@@ -609,7 +609,7 @@ app.post('/payment/status/:orderid', async (req, res) => {
               length: '40',
               width: '16',
               height: '2',
-              weight: '',
+              weight: weight,
             }),
           }
         );
