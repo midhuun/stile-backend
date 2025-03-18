@@ -4,7 +4,6 @@ const cors = require('cors');
 const env = require('dotenv');
 const { ProductModel, SubCategoryModel, CategoryModel } = require('../model/ProductModel');
 const cookieParser = require('cookie-parser');
-app.use(compression());
 env.config();
 app.use(
   cors({
@@ -20,6 +19,7 @@ app.use(
     allowedHeaders: ['Content-Type', 'Authorization'], // Ensure necessary headers are allowed
   })
 );
+app.use(compression());
 app.use(cookieParser());
 app.use(express.json());
 const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
