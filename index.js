@@ -540,50 +540,91 @@ app.get('/alluser/orders', async (req, res) => {
 app.post('/payment/status/:orderid', async (req, res) => {
   try {
     const orderid = req.params.orderid;
-    const payment = await PaymentStatus.findOne({ orderid })
-      .sort({ updatedAt: -1 })
-      .limit(1)
-      .exec();
+
+    // Fetch the latest payment status
+    let payment;
+    try {
+      payment = await PaymentStatus.findOne({ orderid }).sort({ updatedAt: -1 }).limit(1).exec();
+    } catch (error) {
+      console.error('Error fetching payment status:', error);
+      return res.status(500).json({ message: 'Error fetching payment status', success: false });
+    }
+
     if (!payment) {
       return res.status(404).json({ message: 'Payment record not found', success: false });
     }
+
     const status = payment.paymentStatus;
+
     if (status === 'SUCCESS') {
-      const order = await OrderModel.findOne({ orderId: orderid })
-        .populate('user')
-        .populate('products.product')
-        .exec();
-      const orderedProducts = order?.products.map((product) => {
-        return {
-          name: product.product.name,
-          sku: product.product.slug,
-          units: product.quantity,
-          selling_price: product.product.price,
-        };
-      });
-      let createData;
-      const weight =
-        orderedProducts.reduce((acc, product) => {
-          return acc + product.units * 230;
-        }, 0) / 1000;
+      let order;
+      try {
+        order = await OrderModel.findOne({ orderId: orderid })
+          .populate('user')
+          .populate('products.product')
+          .exec();
+      } catch (error) {
+        console.error('Error fetching order:', error);
+        return res.status(500).json({ message: 'Error fetching order details', success: false });
+      }
+
       if (!order) {
         return res.status(404).json({ message: 'Order not found', success: false });
       }
+
+      const orderedProducts = order?.products.map((product) => ({
+        name: product.product.name,
+        sku: product.product.slug,
+        units: product.quantity,
+        selling_price: product.product.price,
+      }));
+
+      let createData;
+      const weight = orderedProducts.reduce((acc, product) => acc + product.units * 230, 0) / 1000;
+
       if (order.paymentStatus === 'Pending') {
-        const res = await fetch('https://apiv2.shiprocket.in/v1/external/auth/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ email: 'midhuun.2003@gmail.com', password: 'Midhun@123' }),
-        });
-        await OrderModel.updateOne({ orderId: orderid }, { paymentStatus: 'Paid' });
-        const data = await res.json();
-        const { token } = data;
+        let token;
+        try {
+          const authRes = await fetch('https://apiv2.shiprocket.in/v1/external/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: 'midhuun.2003@gmail.com', password: 'Midhun@123' }),
+          });
+
+          if (!authRes.ok) throw new Error('Failed to authenticate with Shiprocket');
+
+          const authData = await authRes.json();
+          token = authData.token;
+        } catch (error) {
+          console.error('Error authenticating with Shiprocket:', error);
+          return res
+            .status(500)
+            .json({ message: 'Failed to authenticate with Shiprocket', success: false });
+        }
+
+        try {
+          await OrderModel.updateOne({ orderId: orderid }, { paymentStatus: 'Paid' });
+        } catch (error) {
+          console.error('Error updating order payment status:', error);
+          return res
+            .status(500)
+            .json({ message: 'Failed to update payment status', success: false });
+        }
+
+        let pincodeData;
+        try {
+          const pincodeRes = await fetch(
+            `http://www.postalpincode.in/api/pincode/${order.pincode}`
+          );
+          pincodeData = await pincodeRes.json();
+        } catch (error) {
+          console.error('Error fetching pincode data:', error);
+          return res.status(500).json({ message: 'Failed to fetch pincode data', success: false });
+        }
+
         const now = new Date();
         const formattedDate = now.toISOString().slice(0, 16).replace('T', ' ');
-        const pincodeRes = await fetch(`http://www.postalpincode.in/api/pincode/${order.pincode}`);
-        const pincodeData = await pincodeRes.json();
+
         try {
           const createRes = await fetch(
             'https://apiv2.shiprocket.in/v1/external/orders/create/adhoc',
@@ -601,8 +642,8 @@ app.post('/payment/status/:orderid', async (req, res) => {
                 billing_address: order.address?.location,
                 billing_phone: order.user.phone,
                 billing_email: order?.email || 'midhun2031@gmail.com',
-                billing_state: pincodeData?.PostOffice[0].State,
-                billing_city: pincodeData?.PostOffice[0].District,
+                billing_state: pincodeData?.PostOffice?.[0]?.State || 'Unknown',
+                billing_city: pincodeData?.PostOffice?.[0]?.District || 'Unknown',
                 billing_country: 'India',
                 billing_pincode: order?.pincode,
                 shipping_is_billing: true,
@@ -617,64 +658,77 @@ app.post('/payment/status/:orderid', async (req, res) => {
               }),
             }
           );
+
+          if (!createRes.ok) throw new Error('Failed to create order with Shiprocket');
+
           createData = await createRes.json();
-          console.log(createData);
-        } catch (err) {
-          console.log(err);
+        } catch (error) {
+          console.error('Error creating order in Shiprocket:', error);
+          return res
+            .status(500)
+            .json({ message: 'Failed to create shipping order', success: false });
         }
-        if (createData) {
+
+        try {
           await ShipModel.create({ ...createData, my_order_id: orderid });
-          console.log(ShipModel);
+        } catch (error) {
+          console.error('Error saving shipment data:', error);
         }
-        await transporter.sendMail({
-          from: process.env.EMAIL_USER,
-          to: 'support@stilesagio.com',
-          cc: 'midhun2031@gmail.com',
-          subject: `New Order Placed - ${order.orderId}`,
-          html: `
-                    <h2>New Order Details</h2>
-                    <p><strong>Customer Phone:</strong> ${order.user.phone}</p>
-                    <p><strong>Customer Name:</strong> ${order.address.name}</p>
-                    <p><strong>Order ID:</strong> ${order.orderId}</p>
-                    <p><strong>Payment Method:</strong> ${order.paymentMethod.toUpperCase()}</p>
-                    <p><strong>Total Amount:</strong> Rs. ${order.totalAmount}</p>
-                    <p><strong>Pincode:</strong> ${order.pincode}</p>
-                    <p><strong>Address:</strong> ${order.address.location}</p>
-                    <p><strong>City:</strong> ${order.address.city}</p>
-                    ${
-                      order.address.alternateMobile
-                        ? `<p><strong>Alternate Mobile:</strong> ${order.address.alternateMobile}</p>`
-                        : ''
-                    }
-                    <h3>Products Ordered:</h3>
-                    <ul>
-                        ${order.products
-                          .map(
-                            (item) => `
-                            <li>
-                                <strong>Product:</strong> ${item.product.name} <br />
-                                <strong>Size:</strong> ${item.selectedSize} <br />
-                                <strong>Quantity:</strong> ${item.quantity}
-                            </li>
-                        `
-                          )
-                          .join('')}
-                    </ul>
-                    <p style="color: red;"><strong>Please review and process the order.</strong></p>
-                `,
-        });
+
+        try {
+          await transporter.sendMail({
+            from: process.env.EMAIL_USER,
+            to: 'support@stilesagio.com',
+            cc: 'midhun2031@gmail.com',
+            subject: `New Order Placed - ${order.orderId}`,
+            html: `
+              <h2>New Order Details</h2>
+              <p><strong>Customer Phone:</strong> ${order.user.phone}</p>
+              <p><strong>Customer Name:</strong> ${order.address.name}</p>
+              <p><strong>Order ID:</strong> ${order.orderId}</p>
+              <p><strong>Payment Method:</strong> ${order.paymentMethod.toUpperCase()}</p>
+              <p><strong>Total Amount:</strong> Rs. ${order.totalAmount}</p>
+              <p><strong>Pincode:</strong> ${order.pincode}</p>
+              <p><strong>Address:</strong> ${order.address.location}</p>
+              <p><strong>City:</strong> ${order.address.city}</p>
+              ${
+                order.address.alternateMobile
+                  ? `<p><strong>Alternate Mobile:</strong> ${order.address.alternateMobile}</p>`
+                  : ''
+              }
+              <h3>Products Ordered:</h3>
+              <ul>
+                ${order.products
+                  .map(
+                    (item) => `
+                  <li>
+                    <strong>Product:</strong> ${item.product.name} <br />
+                    <strong>Size:</strong> ${item.selectedSize} <br />
+                    <strong>Quantity:</strong> ${item.quantity}
+                  </li>
+                `
+                  )
+                  .join('')}
+              </ul>
+              <p style="color: red;"><strong>Please review and process the order.</strong></p>
+            `,
+          });
+        } catch (error) {
+          console.error('Error sending email:', error);
+        }
       }
+
       return res
         .status(200)
-        .json({ message: createData, success: true, payment: order.paymentMethod });
+        .json({ message: 'Payment Successful', success: true, payment: order.paymentMethod });
     } else if (status === 'FAILED') {
       return res.status(400).json({ message: 'Payment Failed', success: false });
     } else {
       return res.status(202).json({ message: 'Payment Pending', success: false });
     }
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: 'Server Error', success: false });
+    console.error('Unexpected Server Error:', error);
+    return res.status(500).json({ message: 'Internal Server Error', success: false });
   }
 });
 
