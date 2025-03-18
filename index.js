@@ -574,7 +574,7 @@ app.post('/payment/status/:orderid', async (req, res) => {
 
       const orderedProducts = order?.products.map((product) => ({
         name: product.product.name,
-        sku: product.product.slug,
+        sku: `${product.product.slug}_${product.selectedSize}`,
         units: product.quantity,
         selling_price: product.product.price,
       }));
