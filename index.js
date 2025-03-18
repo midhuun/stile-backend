@@ -576,13 +576,13 @@ app.post('/payment/status/:orderid', async (req, res) => {
           },
           body: JSON.stringify({ email: 'midhuun.2003@gmail.com', password: 'Midhun@123' }),
         });
+        await OrderModel.updateOne({ orderId: orderid }, { paymentStatus: 'Paid' });
         const data = await res.json();
         const { token } = data;
         const now = new Date();
         const formattedDate = now.toISOString().slice(0, 16).replace('T', ' ');
         const pincodeRes = await fetch(`http://www.postalpincode.in/api/pincode/${order.pincode}`);
         const pincodeData = await pincodeRes.json();
-
         const createRes = await fetch(
           'https://apiv2.shiprocket.in/v1/external/orders/create/adhoc',
           {
@@ -618,7 +618,6 @@ app.post('/payment/status/:orderid', async (req, res) => {
           await ShipModel.create({ ...createData, my_order_id: orderid });
           console.log(ShipModel);
         }
-        await OrderModel.updateOne({ orderId: orderid }, { paymentStatus: 'Paid' });
         await transporter.sendMail({
           from: process.env.EMAIL_USER,
           to: 'support@stilesagio.com',
