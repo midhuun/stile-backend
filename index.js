@@ -659,14 +659,12 @@ app.post('/payment/status/:orderid', async (req, res) => {
             }
           );
 
-          if (!createRes.ok) throw new Error('Failed to create order with Shiprocket');
+          // if (!createRes.ok) throw new Error('Failed to create order with Shiprocket');
 
           createData = await createRes.json();
         } catch (error) {
           console.error('Error creating order in Shiprocket:', error);
-          return res
-            .status(500)
-            .json({ message: 'Failed to create shipping order', success: false });
+          return res.status(500).json({ message: error, success: false });
         }
 
         try {
