@@ -127,10 +127,14 @@ const ProductSchema = new Schema(
       unique: true,
       minLength: [4, "Product name must be more than 4 characters"],
       maxLength: [50, "Product name must not be more than 50 characters"],
+      index: true,
     },
     slug: {
       type: String,
       trim: true,
+      required: true,
+      unique: true,
+      index: true,
     },
     description: {
       type: String,
@@ -142,6 +146,7 @@ const ProductSchema = new Schema(
       type: Number,
       required: true,
       min: [0, "Price must be at least 0"],
+      index: true,
     },
     discount: {
       type: Number,
@@ -169,11 +174,13 @@ const ProductSchema = new Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Category",
       required: true,
+      index: true,
     },
     subcategory: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "SubCategory",
       required: true,
+      index: true,
     },
     images: [
       {
@@ -188,6 +195,15 @@ const ProductSchema = new Schema(
     attributes: {
       type: Object,
       default: {},
+    },
+    stock: {
+      type: Number,
+      default: 0,
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
+      index: true,
     },
   },
   { timestamps: true }
@@ -233,6 +249,10 @@ ProductSchema.pre("save", async function (next) {
     next(err);
   }
 });
+
+// Compound indexes for common query patterns
+ProductSchema.index({ category: 1, subcategory: 1 });
+ProductSchema.index({ slug: 1, category: 1 });
 
 const ProductModel = mongoose.model("Product", ProductSchema);
 

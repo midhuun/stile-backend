@@ -28,6 +28,7 @@ const ReviewModel = require('./model/ReviewModel');
 const { default: mongoose } = require('mongoose');
 const sitemap = require('./utils/sitemap');
 const ShipModel = require('./model/ShipModel');
+const Redis = require('ioredis');
 env.config();
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(
@@ -61,10 +62,56 @@ app.get('/', (req, res) => {
   res.send('Nodejs Running');
 });
 app.use('/', sitemap);
-app.get('/allproducts', async (req, res) => {
-  const products = await ProductModel.find().populate('category').populate('subcategory');
-  res.json(products);
+
+// Initialize Redis client
+const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+
+// Cache middleware
+const cache = (duration) => {
+  return async (req, res, next) => {
+    const key = `cache:${req.originalUrl}`;
+    const cachedResponse = await redis.get(key);
+    
+    if (cachedResponse) {
+      return res.json(JSON.parse(cachedResponse));
+    }
+    
+    res.sendResponse = res.json;
+    res.json = (body) => {
+      redis.setex(key, duration, JSON.stringify(body));
+      res.sendResponse(body);
+    };
+    next();
+  };
+};
+
+// Optimize the allproducts endpoint with caching and pagination
+app.get('/allproducts', cache(300), async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const products = await ProductModel.find()
+      .populate('category')
+      .populate('subcategory')
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    const total = await ProductModel.countDocuments();
+
+    res.json({
+      products,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      totalProducts: total
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Error fetching products' });
+  }
 });
+
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -832,16 +879,22 @@ app.delete('/admin/delete/:field', async (req, res) => {
     }
   }
 });
-app.get('/category/:name', async (req, res) => {
+app.get('/category/:name', cache(300), async (req, res) => {
   const name = req.params.name;
 
   try {
-    const subcategory = await SubCategoryModel.findOne({ slug: name }).populate({
-      path: 'products',
-      model: 'Product',
-    });
-    const products = await ProductModel.find({ subcategory: subcategory._id });
-    res.send({ subcategory: subcategory, products: products });
+    const subcategory = await SubCategoryModel.findOne({ slug: name })
+      .populate({
+        path: 'products',
+        model: 'Product',
+        options: { lean: true }
+      })
+      .lean();
+      
+    const products = await ProductModel.find({ subcategory: subcategory._id })
+      .lean();
+      
+    res.send({ subcategory, products });
   } catch (err) {
     res.status(400).send({ message: 'Error Finding Category' });
   }
