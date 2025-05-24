@@ -63,34 +63,66 @@ app.get('/', (req, res) => {
 });
 app.use('/', sitemap);
 
-// Initialize Redis client
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+// Update Redis initialization with error handling
+let redis;
+try {
+  redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+  console.log('Redis connected successfully');
+  
+  // Add error handling for Redis
+  redis.on('error', (err) => {
+    console.error('Redis connection error:', err);
+    // If Redis has an error, set it to null so the cache middleware can bypass it
+    redis = null;
+  });
+} catch (error) {
+  console.error('Redis initialization failed:', error);
+  redis = null;
+}
 
-// Replace the improved cache middleware with the original version
+// Update cache middleware to work even if Redis is unavailable
 const cache = (duration) => {
   return async (req, res, next) => {
-    const key = `cache:${req.originalUrl}`;
-    const cachedResponse = await redis.get(key);
-    
-    if (cachedResponse) {
-      return res.json(JSON.parse(cachedResponse));
+    // Skip caching if Redis isn't available
+    if (!redis) {
+      console.log('Redis unavailable, skipping cache for:', req.originalUrl);
+      return next();
     }
     
-    res.sendResponse = res.json;
-    res.json = (body) => {
-      redis.setex(key, duration, JSON.stringify(body));
-      res.sendResponse(body);
-    };
-    next();
+    try {
+      const key = `cache:${req.originalUrl}`;
+      const cachedResponse = await redis.get(key);
+      
+      if (cachedResponse) {
+        return res.json(JSON.parse(cachedResponse));
+      }
+      
+      res.sendResponse = res.json;
+      res.json = (body) => {
+        try {
+          redis.setex(key, duration, JSON.stringify(body));
+        } catch (err) {
+          console.error('Redis cache error:', err);
+        }
+        res.sendResponse(body);
+      };
+      next();
+    } catch (error) {
+      console.error('Cache middleware error:', error);
+      // If there's any error in the cache middleware, just continue without caching
+      next();
+    }
   };
 };
 
-// Restore original allproducts endpoint
+// Modify the allproducts endpoint to add better error handling
 app.get('/allproducts', cache(300), async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
+
+    console.log('Fetching products with pagination:', { page, limit, skip });
 
     const products = await ProductModel.find()
       .populate('category')
@@ -99,7 +131,10 @@ app.get('/allproducts', cache(300), async (req, res) => {
       .limit(limit)
       .lean();
 
+    console.log('Products fetched successfully:', products.length);
+
     const total = await ProductModel.countDocuments();
+    console.log('Total products count:', total);
 
     res.json({
       products,
@@ -108,7 +143,13 @@ app.get('/allproducts', cache(300), async (req, res) => {
       totalProducts: total
     });
   } catch (error) {
-    res.status(500).json({ error: 'Error fetching products' });
+    console.error('Detailed error in /allproducts:', error);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      error: 'Error fetching products',
+      message: error.message,
+      stack: process.env.NODE_ENV === 'production' ? '🥞' : error.stack
+    });
   }
 });
 
@@ -992,6 +1033,23 @@ app.get('/api/cart', userAuth, async (req, res) => {
     res.status(500).send({ message: 'Error Occured' });
   }
 });
+
+// Add a health check endpoint that includes information about connections
+app.get('/health', (req, res) => {
+  const health = {
+    status: 'UP',
+    timestamp: new Date(),
+    redis: redis ? 'CONNECTED' : 'DISCONNECTED',
+    mongodb: mongoose.connection.readyState === 1 ? 'CONNECTED' : 'DISCONNECTED',
+    env: {
+      NODE_ENV: process.env.NODE_ENV || 'development',
+      // Don't include sensitive information
+    }
+  };
+  
+  res.json(health);
+});
+
 connectTODB()
   .then(() => {
     console.log('DB connected successfully');
