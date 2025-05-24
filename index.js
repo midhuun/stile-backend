@@ -28,7 +28,7 @@ const ReviewModel = require('./model/ReviewModel');
 const { default: mongoose } = require('mongoose');
 const sitemap = require('./utils/sitemap');
 const ShipModel = require('./model/ShipModel');
-const Redis = require('ioredis');
+// const Redis = require('ioredis');
 env.config();
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(
@@ -63,59 +63,15 @@ app.get('/', (req, res) => {
 });
 app.use('/', sitemap);
 
-// Update Redis initialization with error handling
-let redis;
-try {
-  redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
-  console.log('Redis connected successfully');
-  
-  // Add error handling for Redis
-  redis.on('error', (err) => {
-    console.error('Redis connection error:', err);
-    // If Redis has an error, set it to null so the cache middleware can bypass it
-    redis = null;
-  });
-} catch (error) {
-  console.error('Redis initialization failed:', error);
-  redis = null;
-}
-
-// Update cache middleware to work even if Redis is unavailable
+// Replace the cache middleware with a no-op version
 const cache = (duration) => {
-  return async (req, res, next) => {
-    // Skip caching if Redis isn't available
-    if (!redis) {
-      console.log('Redis unavailable, skipping cache for:', req.originalUrl);
-      return next();
-    }
-    
-    try {
-      const key = `cache:${req.originalUrl}`;
-      const cachedResponse = await redis.get(key);
-      
-      if (cachedResponse) {
-        return res.json(JSON.parse(cachedResponse));
-      }
-      
-      res.sendResponse = res.json;
-      res.json = (body) => {
-        try {
-          redis.setex(key, duration, JSON.stringify(body));
-        } catch (err) {
-          console.error('Redis cache error:', err);
-        }
-        res.sendResponse(body);
-      };
-      next();
-    } catch (error) {
-      console.error('Cache middleware error:', error);
-      // If there's any error in the cache middleware, just continue without caching
-      next();
-    }
+  return (req, res, next) => {
+    // Cache is disabled (Redis removed)
+    next();
   };
 };
 
-// Modify the allproducts endpoint to add better error handling
+// Ensure the allproducts endpoint works without Redis
 app.get('/allproducts', cache(300), async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -144,11 +100,10 @@ app.get('/allproducts', cache(300), async (req, res) => {
     });
   } catch (error) {
     console.error('Detailed error in /allproducts:', error);
-    console.error('Error stack:', error.stack);
+    console.error('Stack trace:', error.stack);
     res.status(500).json({ 
       error: 'Error fetching products',
-      message: error.message,
-      stack: process.env.NODE_ENV === 'production' ? '🥞' : error.stack
+      message: error.message
     });
   }
 });
@@ -1034,16 +989,14 @@ app.get('/api/cart', userAuth, async (req, res) => {
   }
 });
 
-// Add a health check endpoint that includes information about connections
+// Update the health check endpoint
 app.get('/health', (req, res) => {
   const health = {
     status: 'UP',
     timestamp: new Date(),
-    redis: redis ? 'CONNECTED' : 'DISCONNECTED',
     mongodb: mongoose.connection.readyState === 1 ? 'CONNECTED' : 'DISCONNECTED',
     env: {
-      NODE_ENV: process.env.NODE_ENV || 'development',
-      // Don't include sensitive information
+      NODE_ENV: process.env.NODE_ENV || 'development'
     }
   };
   
