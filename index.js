@@ -40,9 +40,11 @@ app.use(
       'https://stile-12333.vercel.app',
       'https://admin-stile-12333.vercel.app',
     ],
-    credentials: true, // Allow cookies and authentication headers
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow specific HTTP methods
-    allowedHeaders: ['Content-Type', 'Authorization'], // Ensure necessary headers are allowed
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    preflightContinue: false,
+    optionsSuccessStatus: 204
   })
 );
 app.use(compression());
@@ -1075,3 +1077,16 @@ connectTODB()
     });
   })
   .catch((err) => console.log('MongoErro', err));
+
+// CORS error handling middleware
+app.use((err, req, res, next) => {
+  if (err.name === 'CORSError') {
+    console.error('CORS Error:', err.message);
+    return res.status(403).json({
+      error: 'CORS Error',
+      message: 'Cross-Origin Request Blocked',
+      details: err.message
+    });
+  }
+  next(err);
+});
