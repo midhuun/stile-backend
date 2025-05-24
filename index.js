@@ -42,9 +42,7 @@ app.use(
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-    preflightContinue: false,
-    optionsSuccessStatus: 204
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
 app.use(compression());
@@ -68,67 +66,40 @@ app.use('/', sitemap);
 // Initialize Redis client
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 
-// Improved cache middleware that handles pagination
+// Replace the improved cache middleware with the original version
 const cache = (duration) => {
   return async (req, res, next) => {
-    // Create a unique cache key including query parameters
     const key = `cache:${req.originalUrl}`;
+    const cachedResponse = await redis.get(key);
     
-    try {
-      const cachedResponse = await redis.get(key);
-      
-      if (cachedResponse) {
-        console.log(`Cache hit: ${key}`);
-        return res.json(JSON.parse(cachedResponse));
-      }
-      
-      console.log(`Cache miss: ${key}`);
-      res.sendResponse = res.json;
-      res.json = (body) => {
-        redis.setex(key, duration, JSON.stringify(body));
-        res.sendResponse(body);
-      };
-      next();
-    } catch (error) {
-      console.error('Cache error:', error);
-      next(); // Continue without caching if Redis fails
+    if (cachedResponse) {
+      return res.json(JSON.parse(cachedResponse));
     }
+    
+    res.sendResponse = res.json;
+    res.json = (body) => {
+      redis.setex(key, duration, JSON.stringify(body));
+      res.sendResponse(body);
+    };
+    next();
   };
 };
 
-// Performance monitoring middleware
-const measurePerformance = (req, res, next) => {
-  const start = Date.now();
-  
-  res.on('finish', () => {
-    const duration = Date.now() - start;
-    console.log(`${req.method} ${req.originalUrl} - ${duration}ms`);
-  });
-  
-  next();
-};
-
-// Apply performance monitoring
-app.use(measurePerformance);
-
-// Optimize the allproducts endpoint with improved caching and pagination
+// Restore original allproducts endpoint
 app.get('/allproducts', cache(300), async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    // Use parallel queries for better performance
-    const [products, total] = await Promise.all([
-      ProductModel.find()
-        .select('name slug price images category subcategory') // Only select needed fields
-        .populate('category', 'name slug') // Limit populated fields
-        .populate('subcategory', 'name slug')
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      ProductModel.countDocuments()
-    ]);
+    const products = await ProductModel.find()
+      .populate('category')
+      .populate('subcategory')
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    const total = await ProductModel.countDocuments();
 
     res.json({
       products,
@@ -137,76 +108,29 @@ app.get('/allproducts', cache(300), async (req, res) => {
       totalProducts: total
     });
   } catch (error) {
-    console.error('Error fetching products:', error);
-    res.status(500).json({ error: 'Error fetching products', message: error.message });
+    res.status(500).json({ error: 'Error fetching products' });
   }
 });
 
-// Optimize the product details endpoint with caching
-app.get('/product/:name', cache(600), async (req, res) => {
-  try {
-    const productName = req.params.name;
-    const product = await ProductModel.findOne({ slug: productName })
-      .populate('category')
-      .populate('subcategory')
-      .lean();
-      
-    if (!product) {
-      return res.status(404).json({ error: 'Product not found' });
-    }
-    
-    res.json(product);
-  } catch (error) {
-    console.error('Error fetching product details:', error);
-    res.status(500).json({ error: 'Error fetching product details', message: error.message });
-  }
-});
-
-// Add pagination to category endpoint
+// Restore the original category endpoint
 app.get('/category/:name', cache(300), async (req, res) => {
   const name = req.params.name;
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 12;
-  const skip = (page - 1) * limit;
 
   try {
     const subcategory = await SubCategoryModel.findOne({ slug: name })
+      .populate({
+        path: 'products',
+        model: 'Product',
+        options: { lean: true }
+      })
       .lean();
       
-    if (!subcategory) {
-      return res.status(404).json({ message: 'Category not found' });
-    }
-    
-    const [products, total] = await Promise.all([
-      ProductModel.find({ subcategory: subcategory._id })
-        .select('name slug price images category subcategory')
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      ProductModel.countDocuments({ subcategory: subcategory._id })
-    ]);
+    const products = await ProductModel.find({ subcategory: subcategory._id })
+      .lean();
       
-    res.json({
-      subcategory,
-      products,
-      currentPage: page,
-      totalPages: Math.ceil(total / limit),
-      totalProducts: total
-    });
+    res.send({ subcategory, products });
   } catch (err) {
-    console.error('Error finding category:', err);
-    res.status(500).json({ message: 'Error Finding Category', error: err.message });
-  }
-});
-
-// Add cache clearing endpoint for admin use
-app.post('/admin/cache/clear', async (req, res) => {
-  try {
-    await redis.flushall();
-    res.json({ message: 'Cache cleared successfully' });
-  } catch (error) {
-    console.error('Error clearing cache:', error);
-    res.status(500).json({ error: 'Failed to clear cache' });
+    res.status(400).send({ message: 'Error Finding Category' });
   }
 });
 
@@ -1076,16 +1000,3 @@ connectTODB()
     });
   })
   .catch((err) => console.log('MongoErro', err));
-
-// CORS error handling middleware
-app.use((err, req, res, next) => {
-  if (err.name === 'CORSError') {
-    console.error('CORS Error:', err.message);
-    return res.status(403).json({
-      error: 'CORS Error',
-      message: 'Cross-Origin Request Blocked',
-      details: err.message
-    });
-  }
-  next(err);
-});
