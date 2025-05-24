@@ -24,34 +24,117 @@ app.use(compression());
 app.use(cookieParser());
 app.use(express.json());
 const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
+
+/**
+ * Get all products with optimized performance and pagination
+ */
 const productRequest = async (req, res) => {
   try {
-    const subCategories = await SubCategoryModel.find().populate('category').populate('products');
-    const categories = await CategoryModel.find()
-      .select('slug name image')
-      .populate({ path: 'subcategories', populate: { path: 'products', model: 'Product' } });
-    res.status(201).send({ categories, subCategories });
+    // Extract pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 12;
+    const skip = (page - 1) * limit;
+
+    // Use Promise.all for parallel queries to improve performance
+    const [subCategories, categories] = await Promise.all([
+      SubCategoryModel.find()
+        .select('name slug category products')
+        .populate('category', 'name slug')
+        .lean(),
+      
+      CategoryModel.find()
+        .select('slug name image startingPrice')
+        .populate({
+          path: 'subcategories',
+          select: 'name slug image',
+          populate: {
+            path: 'products',
+            model: 'Product',
+            select: 'name slug price images',
+            options: { limit: 10 } // Limit number of products per subcategory
+          }
+        })
+        .lean()
+    ]);
+
+    res.status(200).json({ categories, subCategories });
   } catch (err) {
-    res.status(400).send('Error fetching products');
+    console.error('Error fetching products:', err);
+    res.status(500).json({ error: 'Error fetching products', message: err.message });
   }
 };
+
+/**
+ * Get product details by name with optimized performance
+ */
 const uniqueProductRequest = async (req, res) => {
-  const { name } = req.params;
   try {
-    const product = await ProductModel.find({ slug: name }).populate('subcategory');
-    res.send(product);
+    const productName = req.params.name;
+    
+    // Find the product with lean query for better performance
+    const product = await ProductModel.findOne({ slug: productName })
+      .populate('category', 'name slug')
+      .populate('subcategory', 'name slug')
+      .lean();
+
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    // Get related products in the same subcategory (limited to 4)
+    const relatedProducts = await ProductModel.find({
+      subcategory: product.subcategory._id,
+      _id: { $ne: product._id } // Exclude current product
+    })
+      .select('name slug price images')
+      .limit(4)
+      .lean();
+
+    res.status(200).json({ product, relatedProducts });
   } catch (err) {
-    console.log(err);
-    res.send('Error');
+    console.error('Error fetching product:', err);
+    res.status(500).json({ error: 'Error fetching product details', message: err.message });
   }
 };
+
+/**
+ * Get products by category with optimized performance
+ */
 const categoryRequest = async (req, res) => {
-  const { category } = req.params;
   try {
-    const Products = await ProductModel.find({ category: category });
-    res.send(Products);
+    const category = req.params.category;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 12;
+    const skip = (page - 1) * limit;
+
+    // Find category first
+    const categoryDoc = await CategoryModel.findOne({ slug: category }).lean();
+    
+    if (!categoryDoc) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+
+    // Get products with pagination
+    const [products, total] = await Promise.all([
+      ProductModel.find({ category: categoryDoc._id })
+        .select('name slug price images category subcategory')
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      ProductModel.countDocuments({ category: categoryDoc._id })
+    ]);
+
+    res.status(200).json({
+      category: categoryDoc,
+      products,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      totalProducts: total
+    });
   } catch (err) {
-    res.send(err);
+    console.error('Error fetching category products:', err);
+    res.status(500).json({ error: 'Error fetching category products', message: err.message });
   }
 };
+
 module.exports = { productRequest, uniqueProductRequest, categoryRequest };
