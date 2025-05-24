@@ -31,20 +31,50 @@ const ShipModel = require('./model/ShipModel');
 // const Redis = require('ioredis');
 env.config();
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(
-  cors({
-    origin: [
-      'https://www.stilesagio.com',
-      'http://localhost:5173',
-      'https://stile-frontend-9jne.vercel.app',
-      'https://stile-12333.vercel.app',
-      'https://admin-stile-12333.vercel.app',
-    ],
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  })
-);
+
+// Create two CORS options - one specific, one wildcard for fallback
+const corsOptions = {
+  origin: [
+    'https://www.stilesagio.com',
+    'https://stilesagio.com',
+    'http://localhost:5173',
+    'https://stile-frontend-9jne.vercel.app',
+    'https://stile-12333.vercel.app',
+    'https://admin-stile-12333.vercel.app',
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Origin', 'Accept'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  optionsSuccessStatus: 204,
+  preflightContinue: false
+};
+
+// If specific CORS doesn't work, uncomment the wildcard option below
+const wildcardCorsOptions = {
+  origin: '*', // WARNING: This allows any website to access your API
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Origin', 'Accept']
+};
+
+// Apply CORS middleware
+app.use(cors(corsOptions));
+app.use(cors(wildcardCorsOptions));
+
+// Handle preflight requests and set headers for all responses
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || 'https://www.stilesagio.com');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(204).send();
+  }
+  next();
+});
+
 app.use(compression());
 app.use(cookieParser());
 app.use(express.json());
@@ -71,9 +101,13 @@ const cache = (duration) => {
   };
 };
 
-// Ensure the allproducts endpoint works without Redis
+// Ensure the allproducts endpoint works without Redis and handles CORS
 app.get('/allproducts', cache(300), async (req, res) => {
   try {
+    // Set CORS headers specifically for this route
+    res.header('Access-Control-Allow-Origin', 'https://www.stilesagio.com');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
