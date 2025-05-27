@@ -28,22 +28,53 @@ const ReviewModel = require('./model/ReviewModel');
 const { default: mongoose } = require('mongoose');
 const sitemap = require('./utils/sitemap');
 const ShipModel = require('./model/ShipModel');
+// const Redis = require('ioredis');
 env.config();
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(
-  cors({
-    origin: [
-      'https://www.stilesagio.com',
-      'http://localhost:5173',
-      'https://stile-frontend-9jne.vercel.app',
-      'https://stile-12333.vercel.app',
-      'https://admin-stile-12333.vercel.app',
-    ],
-    credentials: true, // Allow cookies and authentication headers
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow specific HTTP methods
-    allowedHeaders: ['Content-Type', 'Authorization'], // Ensure necessary headers are allowed
-  })
-);
+
+// Create two CORS options - one specific, one wildcard for fallback
+const corsOptions = {
+  origin: [
+    'https://www.stilesagio.com',
+    'https://stilesagio.com',
+    'http://localhost:5173',
+    'https://stile-frontend-9jne.vercel.app',
+    'https://stile-12333.vercel.app',
+    'https://admin-stile-12333.vercel.app',
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Origin', 'Accept'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  optionsSuccessStatus: 204,
+  preflightContinue: false
+};
+
+// If specific CORS doesn't work, uncomment the wildcard option below
+const wildcardCorsOptions = {
+  origin: '*', // WARNING: This allows any website to access your API
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Origin', 'Accept']
+};
+
+// Apply CORS middleware
+app.use(cors(corsOptions));
+app.use(cors(wildcardCorsOptions));
+
+// Handle preflight requests and set headers for all responses
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || 'https://www.stilesagio.com');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(204).send();
+  }
+  next();
+});
+
 app.use(compression());
 app.use(cookieParser());
 app.use(express.json());
@@ -61,10 +92,78 @@ app.get('/', (req, res) => {
   res.send('Nodejs Running');
 });
 app.use('/', sitemap);
-app.get('/allproducts', async (req, res) => {
-  const products = await ProductModel.find().populate('category').populate('subcategory');
-  res.json(products);
+
+// Replace the cache middleware with a no-op version
+const cache = (duration) => {
+  return (req, res, next) => {
+    // Cache is disabled (Redis removed)
+    next();
+  };
+};
+
+// Ensure the allproducts endpoint works without Redis and handles CORS
+app.get('/allproducts', cache(300), async (req, res) => {
+  try {
+    // Set CORS headers specifically for this route
+    res.header('Access-Control-Allow-Origin', 'https://www.stilesagio.com');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    console.log('Fetching products with pagination:', { page, limit, skip });
+
+    const products = await ProductModel.find()
+      .populate('category')
+      .populate('subcategory')
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    console.log('Products fetched successfully:', products.length);
+
+    const total = await ProductModel.countDocuments();
+    console.log('Total products count:', total);
+
+    res.json({
+      products,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      totalProducts: total
+    });
+  } catch (error) {
+    console.error('Detailed error in /allproducts:', error);
+    console.error('Stack trace:', error.stack);
+    res.status(500).json({ 
+      error: 'Error fetching products',
+      message: error.message
+    });
+  }
 });
+
+// Restore the original category endpoint
+app.get('/category/:name', cache(300), async (req, res) => {
+  const name = req.params.name;
+
+  try {
+    const subcategory = await SubCategoryModel.findOne({ slug: name })
+      .populate({
+        path: 'products',
+        model: 'Product',
+        options: { lean: true }
+      })
+      .lean();
+      
+    const products = await ProductModel.find({ subcategory: subcategory._id })
+      .lean();
+      
+    res.send({ subcategory, products });
+  } catch (err) {
+    res.status(400).send({ message: 'Error Finding Category' });
+  }
+});
+
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -440,7 +539,6 @@ app.post('/order/delete/:orderid', async (req, res) => {
 app.post('/user/payment', async (req, res) => {
   const { name, phone, amount } = req.body;
   console.log('headers', req.headers);
-  console.log(name, phone, amount);
   const orderID = new Date().getTime();
   const customerID = `CUST_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
   const customerDetails = {
@@ -832,20 +930,6 @@ app.delete('/admin/delete/:field', async (req, res) => {
     }
   }
 });
-app.get('/category/:name', async (req, res) => {
-  const name = req.params.name;
-
-  try {
-    const subcategory = await SubCategoryModel.findOne({ slug: name }).populate({
-      path: 'products',
-      model: 'Product',
-    });
-    const products = await ProductModel.find({ subcategory: subcategory._id });
-    res.send({ subcategory: subcategory, products: products });
-  } catch (err) {
-    res.status(400).send({ message: 'Error Finding Category' });
-  }
-});
 app.get('/banner', async (req, res) => {
   try {
     // const createModel = await BannerModel.create({image:"https://thesagio.com/cdn/shop/files/HOME-02.png?v=1726319330&width=1920",title:"Shop Your Amazing Products"});
@@ -938,6 +1022,21 @@ app.get('/api/cart', userAuth, async (req, res) => {
     res.status(500).send({ message: 'Error Occured' });
   }
 });
+
+// Update the health check endpoint
+app.get('/health', (req, res) => {
+  const health = {
+    status: 'UP',
+    timestamp: new Date(),
+    mongodb: mongoose.connection.readyState === 1 ? 'CONNECTED' : 'DISCONNECTED',
+    env: {
+      NODE_ENV: process.env.NODE_ENV || 'development'
+    }
+  };
+  
+  res.json(health);
+});
+
 connectTODB()
   .then(() => {
     console.log('DB connected successfully');

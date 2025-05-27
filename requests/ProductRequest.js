@@ -26,15 +26,21 @@ app.use(express.json());
 const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
 const productRequest = async (req, res) => {
   try {
+    // Set CORS headers specifically for this route
+    res.header('Access-Control-Allow-Origin', 'https://www.stilesagio.com');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
     const subCategories = await SubCategoryModel.find().populate('category').populate('products');
     const categories = await CategoryModel.find()
       .select('slug name image')
       .populate({ path: 'subcategories', populate: { path: 'products', model: 'Product' } });
     res.status(201).send({ categories, subCategories });
   } catch (err) {
+    console.error('Error in productRequest:', err);
     res.status(400).send('Error fetching products');
   }
 };
+
 const uniqueProductRequest = async (req, res) => {
   const { name } = req.params;
   try {
@@ -45,6 +51,7 @@ const uniqueProductRequest = async (req, res) => {
     res.send('Error');
   }
 };
+
 const categoryRequest = async (req, res) => {
   const { category } = req.params;
   try {
