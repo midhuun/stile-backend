@@ -476,7 +476,7 @@ app.post('/user/order', async (req, res) => {
       address: req.body.address,
       email: req.body?.email,
       alternateMobile: req?.body?.alternateMobile,
-      orderId: req.body.orderId || new Date().getTime(),
+      orderId: req.body.orderId || new Date().getTime().toString(),
       paymentStatus: 'Pending',
     });
     await user.orders.push(order);
@@ -555,7 +555,7 @@ app.post('/order/delete/:orderid', async (req, res) => {
 app.post('/user/payment', async (req, res) => {
   const { name, phone, amount } = req.body;
   console.log('headers', req.headers);
-  const orderID = new Date().getTime();
+  const orderID = new Date().getTime().toString();
   const customerID = `CUST_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
   const customerDetails = {
     customer_name: name,
