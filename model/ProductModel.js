@@ -117,6 +117,11 @@ SubcategorySchema.pre("save", async function (next) {
   }
 });
 
+// Make sure indexes are created for these fields
+// Add this after defining subcategory schema
+SubcategorySchema.index({ slug: 1 });
+SubcategorySchema.index({ category: 1 });
+
 const SubCategoryModel = mongoose.model("SubCategory", SubcategorySchema);
 
 const ProductSchema = new Schema(
@@ -249,6 +254,14 @@ ProductSchema.pre("save", async function (next) {
     next(err);
   }
 });
+
+// ProductSchema indexes
+// Make sure these are set
+ProductSchema.index({ slug: 1 });
+ProductSchema.index({ category: 1 });
+ProductSchema.index({ subcategory: 1 });
+ProductSchema.index({ price: 1 });
+ProductSchema.index({ createdAt: 1 });
 
 // Compound indexes for common query patterns
 ProductSchema.index({ category: 1, subcategory: 1 });

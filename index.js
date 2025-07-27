@@ -57,9 +57,9 @@ const wildcardCorsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Origin', 'Accept']
 };
 
-// Apply CORS middleware
-app.use(cors(corsOptions));
-app.use(cors(wildcardCorsOptions));
+// Apply only ONE CORS middleware - multiple ones cause overhead
+// app.use(cors(corsOptions));
+app.use(cors(wildcardCorsOptions)); // Using the wildcard one for now since it's simpler
 
 // Handle preflight requests and set headers for all responses
 app.use((req, res, next) => {
@@ -101,66 +101,82 @@ const cache = (duration) => {
   };
 };
 
-// Ensure the allproducts endpoint works without Redis and handles CORS
+// Optimize the allproducts endpoint for better performance
 app.get('/allproducts', cache(300), async (req, res) => {
   try {
-    // Set CORS headers specifically for this route
-    res.header('Access-Control-Allow-Origin', 'https://www.stilesagio.com');
-    res.header('Access-Control-Allow-Credentials', 'true');
+    const startTime = Date.now(); // For tracking performance
+    console.log('Request received:', req.originalUrl);
     
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    console.log('Fetching products with pagination:', { page, limit, skip });
+    // Only select fields we need instead of returning whole documents
+    const select = 'name slug price images discount discountedPrice';
+    
+    // Execute queries in parallel with Promise.all
+    const [products, total] = await Promise.all([
+      ProductModel.find()
+        .select(select)
+        .populate('category', 'name slug') // Only populate what we need
+        .populate('subcategory', 'name slug') // Only populate what we need
+        .skip(skip)
+        .limit(limit)
+        .lean()
+        .exec(),
+      ProductModel.countDocuments()
+    ]);
 
-    const products = await ProductModel.find()
-      .populate('category')
-      .populate('subcategory')
-      .skip(skip)
-      .limit(limit)
-      .lean();
-
-    console.log('Products fetched successfully:', products.length);
-
-    const total = await ProductModel.countDocuments();
-    console.log('Total products count:', total);
-
-    res.json({
+    const response = {
       products,
       currentPage: page,
       totalPages: Math.ceil(total / limit),
       totalProducts: total
-    });
+    };
+
+    const endTime = Date.now();
+    console.log(`Query completed in ${endTime - startTime}ms`);
+    
+    return res.json(response);
   } catch (error) {
-    console.error('Detailed error in /allproducts:', error);
-    console.error('Stack trace:', error.stack);
-    res.status(500).json({ 
+    console.error('Error in /allproducts:', error);
+    return res.status(500).json({ 
       error: 'Error fetching products',
       message: error.message
     });
   }
 });
 
-// Restore the original category endpoint
+// Optimize the category endpoint for better performance
 app.get('/category/:name', cache(300), async (req, res) => {
-  const name = req.params.name;
-
   try {
+    const startTime = Date.now();
+    const name = req.params.name;
+    console.log(`Category request for: ${name}`);
+
+    // First check if subcategory exists
     const subcategory = await SubCategoryModel.findOne({ slug: name })
-      .populate({
-        path: 'products',
-        model: 'Product',
-        options: { lean: true }
-      })
+      .select('name slug category image')
       .lean();
       
+    if (!subcategory) {
+      return res.status(404).send({ message: 'Category not found' });
+    }
+    
+    // Only fetch essential fields
     const products = await ProductModel.find({ subcategory: subcategory._id })
+      .select('name slug price images discount discountedPrice')
       .lean();
       
-    res.send({ subcategory, products });
+    const response = { subcategory, products };
+    
+    const endTime = Date.now();
+    console.log(`Category query completed in ${endTime - startTime}ms`);
+    
+    return res.send(response);
   } catch (err) {
-    res.status(400).send({ message: 'Error Finding Category' });
+    console.error('Error in category endpoint:', err);
+    return res.status(400).send({ message: 'Error Finding Category' });
   }
 });
 
