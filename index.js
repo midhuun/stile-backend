@@ -58,22 +58,8 @@ const wildcardCorsOptions = {
 };
 
 // Apply only ONE CORS middleware - multiple ones cause overhead
-// app.use(cors(corsOptions));
-app.use(cors(wildcardCorsOptions)); // Using the wildcard one for now since it's simpler
-
-// Handle preflight requests and set headers for all responses
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', req.headers.origin || 'https://www.stilesagio.com');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    return res.status(204).send();
-  }
-  next();
-});
+app.use(cors(corsOptions));
+// app.use(cors(wildcardCorsOptions)); // Using the wildcard one for now since it's simpler
 
 app.use(compression());
 app.use(cookieParser());
@@ -582,8 +568,9 @@ app.post('/user/payment', async (req, res) => {
   };
   try {
     const response = await Cashfree.PGCreateOrder('2023-08-01', payload);
-    console.log(response.data);
+    console.log('Cashfree response:', response.data);
     const { payment_session_id: token, order_id } = response.data;
+    console.log('Extracted data:', { token, order_id });
     res.status(200).json({ token, order_id });
   } catch (err) {
     console.log(err.response.data);
