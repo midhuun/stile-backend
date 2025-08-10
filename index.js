@@ -41,6 +41,7 @@ const corsOptions = {
     'https://stile-frontend-9jne.vercel.app',
     'https://stile-12333.vercel.app',
     'https://admin-stile-12333.vercel.app',
+    '*'
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
@@ -68,9 +69,9 @@ const clientID = process.env.X_CLIENT_ID || 'smfkskjjsjvsjmvs';
 const clientSecret = process.env.X_CLIENT_SECRET || 'smfkskjjsjvsjmvs';
 const port = process.env.PORT || 3000;
 const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
-Cashfree.XClientId = '8736483b2f7fe149c6ecaeb913846378';
-Cashfree.XClientSecret = 'cfsk_ma_prod_2a43acc27a7773af0fe2a06b30dc35b1_75d62a6c';
-Cashfree.XEnvironment = Cashfree.Environment.PRODUCTION;
+Cashfree.XClientId = process.env.X_CLIENT_ID || '';
+Cashfree.XClientSecret = process.env.X_CLIENT_SECRET || '';
+Cashfree.XEnvironment = Cashfree.Environment[(process.env.CASHFREE_ENVIRONMENT || 'PRODUCTION').toUpperCase()];
 app.get('/user', getUser);
 app.post('/user/login', loginUser);
 app.post('/user/logout', logoutUser);
@@ -189,6 +190,24 @@ app.get('/sitemap.xml', (req, res) => {
     res.sendFile(sitemapPath);
   } else {
     res.status(404).send('Sitemap not found');
+  }
+});
+
+// Lightweight product search endpoint for header search (reduces initial load)
+app.get('/search', async (req, res) => {
+  try {
+    const q = (req.query.q || '').toString().trim();
+    if (!q) return res.json([]);
+    const regex = new RegExp(q.replace(/[-/\\^$*+?.()|[\]{}]/g, '.'), 'i');
+    const results = await ProductModel.find({ name: regex })
+      .select('name slug images')
+      .limit(10)
+      .lean()
+      .exec();
+    res.json(results);
+  } catch (err) {
+    console.error('Error in /search:', err);
+    res.status(500).json({ error: 'Search failed' });
   }
 });
 // Reviews
