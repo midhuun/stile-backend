@@ -132,14 +132,12 @@ const ProductSchema = new Schema(
       unique: true,
       minLength: [4, "Product name must be more than 4 characters"],
       maxLength: [50, "Product name must not be more than 50 characters"],
-      index: true,
     },
     slug: {
       type: String,
       trim: true,
       required: true,
       unique: true,
-      index: true,
     },
     description: {
       type: String,
@@ -151,7 +149,6 @@ const ProductSchema = new Schema(
       type: Number,
       required: true,
       min: [0, "Price must be at least 0"],
-      index: true,
     },
     discount: {
       type: Number,
@@ -179,13 +176,11 @@ const ProductSchema = new Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Category",
       required: true,
-      index: true,
     },
     subcategory: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "SubCategory",
       required: true,
-      index: true,
     },
     images: [
       {
@@ -208,7 +203,6 @@ const ProductSchema = new Schema(
     createdAt: {
       type: Date,
       default: Date.now,
-      index: true,
     },
   },
   { timestamps: true }
@@ -255,17 +249,15 @@ ProductSchema.pre("save", async function (next) {
   }
 });
 
-// ProductSchema indexes
-// Make sure these are set
-ProductSchema.index({ slug: 1 });
-ProductSchema.index({ category: 1 });
-ProductSchema.index({ subcategory: 1 });
-ProductSchema.index({ price: 1 });
-ProductSchema.index({ createdAt: 1 });
+// ProductSchema indexes (single definitions)
+ProductSchema.index({ slug: 1 }, { name: 'idx_product_slug' });
+ProductSchema.index({ category: 1 }, { name: 'idx_product_category' });
+ProductSchema.index({ subcategory: 1 }, { name: 'idx_product_subcategory' });
+ProductSchema.index({ price: 1 }, { name: 'idx_product_price' });
+ProductSchema.index({ createdAt: 1 }, { name: 'idx_product_createdAt' });
 
-// Compound indexes for common query patterns
-ProductSchema.index({ category: 1, subcategory: 1 });
-ProductSchema.index({ slug: 1, category: 1 });
+// Compound index for common query patterns
+ProductSchema.index({ category: 1, subcategory: 1 }, { name: 'idx_product_cat_subcat' });
 
 const ProductModel = mongoose.model("Product", ProductSchema);
 

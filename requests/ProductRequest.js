@@ -25,13 +25,35 @@ app.use(compression());
 app.use(cookieParser());
 app.use(express.json());
 const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
+// simple in-memory cache to reduce DB load for home payload
+const cacheStore = new Map();
+const getOrSetCache = async (key, ttlMs, fetcher) => {
+  const entry = cacheStore.get(key);
+  const now = Date.now();
+  if (entry && entry.expiry > now) return entry.value;
+  const value = await fetcher();
+  cacheStore.set(key, { value, expiry: now + ttlMs });
+  return value;
+};
+
 const productRequest = async (req, res) => {
   try {
-    const subCategories = await SubCategoryModel.find().populate('category').populate('products');
-    const categories = await CategoryModel.find()
-      .select('slug name image')
-      .populate({ path: 'subcategories', populate: { path: 'products', model: 'Product' } });
-    res.status(201).send({ categories, subCategories });
+    const data = await getOrSetCache('home_products_v1', 1000 * 60 * 5, async () => {
+      const subCategories = await SubCategoryModel.find()
+        .select('name slug image')
+        .populate({
+          path: 'products',
+          select: 'name slug price images discount discountedPrice',
+          options: { limit: 8, sort: { createdAt: -1 } },
+          model: 'Product',
+        })
+        .lean();
+
+      const categories = await CategoryModel.find().select('slug name image').lean();
+      return { categories, subCategories };
+    });
+
+    res.status(200).send(data);
   } catch (err) {
     console.error('Error in productRequest:', err);
     res.status(400).send('Error fetching products');
