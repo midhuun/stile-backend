@@ -25,8 +25,14 @@ app.use(compression());
 app.use(cookieParser());
 app.use(express.json());
 const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
+
+// Cache configuration - 72 hours (3 days)
+const CACHE_DURATION_MS = 1000 * 60 * 60 * 72; // 72 hours
+const CACHE_DURATION_SECONDS = 60 * 60 * 72; // 72 hours in seconds
+
 // simple in-memory cache to reduce DB load for home payload
 const cacheStore = new Map();
+
 const getOrSetCache = async (key, ttlMs, fetcher) => {
   const entry = cacheStore.get(key);
   const now = Date.now();
@@ -36,23 +42,64 @@ const getOrSetCache = async (key, ttlMs, fetcher) => {
   return value;
 };
 
+// Cache management functions
+const clearCache = (key = null) => {
+  if (key) {
+    cacheStore.delete(key);
+    console.log(`Cache cleared for key: ${key}`);
+  } else {
+    cacheStore.clear();
+    console.log('All cache cleared');
+  }
+};
+
+const getCacheStats = () => {
+  const now = Date.now();
+  const stats = {
+    totalEntries: cacheStore.size,
+    activeEntries: 0,
+    expiredEntries: 0,
+    keys: []
+  };
+  
+  for (const [key, entry] of cacheStore.entries()) {
+    stats.keys.push(key);
+    if (entry.expiry > now) {
+      stats.activeEntries++;
+    } else {
+      stats.expiredEntries++;
+    }
+  }
+  
+  return stats;
+};
+
 const productRequest = async (req, res) => {
   try {
-    const data = await getOrSetCache('home_products_v1', 1000 * 60 * 60 * 72, async () => {
-      const subCategories = await SubCategoryModel.find()
-        .select('name slug image')
-        .populate({
-          path: 'products',
-          select: 'name slug price images discount discountedPrice',
-          options: { limit: 8, sort: { createdAt: -1 } },
-          model: 'Product',
-        })
-        .lean();
-
-      const categories = await CategoryModel.find().select('slug name image').lean();
+    const startTime = Date.now();
+    
+    const data = await getOrSetCache('home_products_v1', CACHE_DURATION_MS, async () => {
+      // Execute queries in parallel for better performance
+      const [subCategories, categories] = await Promise.all([
+        SubCategoryModel.find()
+          .select('name slug image')
+          .populate({
+            path: 'products',
+            select: 'name slug price images discount discountedPrice',
+            options: { limit: 8, sort: { createdAt: -1 } },
+            model: 'Product',
+          })
+          .lean(),
+        CategoryModel.find().select('slug name image').lean()
+      ]);
+      
       return { categories, subCategories };
     });
 
+    const endTime = Date.now();
+    console.log(`Product query completed in ${endTime - startTime}ms`);
+    
+    res.set('Cache-Control', `public, max-age=${CACHE_DURATION_SECONDS}`); // 72 hours cache
     res.status(200).send(data);
   } catch (err) {
     console.error('Error in productRequest:', err);
@@ -80,4 +127,11 @@ const categoryRequest = async (req, res) => {
     res.send(err);
   }
 };
-module.exports = { productRequest, uniqueProductRequest, categoryRequest };
+
+module.exports = { 
+  productRequest, 
+  uniqueProductRequest, 
+  categoryRequest, 
+  clearCache, 
+  getCacheStats 
+};

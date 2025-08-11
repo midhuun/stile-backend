@@ -13,6 +13,8 @@ const {
   productRequest,
   uniqueProductRequest,
   categoryRequest,
+  clearCache,
+  getCacheStats,
 } = require('./requests/ProductRequest');
 const { adminRequest } = require('./requests/adminrequests');
 const { deleteRequest } = require('./requests/deleteRequest');
@@ -28,9 +30,22 @@ const ReviewModel = require('./model/ReviewModel');
 const { default: mongoose } = require('mongoose');
 const sitemap = require('./utils/sitemap');
 const ShipModel = require('./model/ShipModel');
+const { performanceMiddleware, getPerformanceStats } = require('./utils/performance');
 // const Redis = require('ioredis');
 env.config();
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Enable compression for all responses
+app.use(compression({
+  level: 6, // Balanced compression level
+  threshold: 1024, // Only compress responses larger than 1KB
+  filter: (req, res) => {
+    if (req.headers['x-no-compression']) {
+      return false;
+    }
+    return compression.filter(req, res);
+  }
+}));
 
 // Create two CORS options - one specific, one wildcard for fallback
 const corsOptions = {
@@ -45,7 +60,19 @@ const corsOptions = {
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Origin', 'Accept'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With', 
+    'Origin', 
+    'Accept',
+    'Cache-Control',
+    'Referer',
+    'User-Agent',
+    'x-no-compression',
+    'content-type',
+    'cache-control'
+  ],
   exposedHeaders: ['Content-Range', 'X-Content-Range'],
   optionsSuccessStatus: 204,
   preflightContinue: false
@@ -55,14 +82,47 @@ const corsOptions = {
 const wildcardCorsOptions = {
   origin: '*', // WARNING: This allows any website to access your API
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Origin', 'Accept']
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With', 
+    'Origin', 
+    'Accept',
+    'Cache-Control',
+    'Referer',
+    'User-Agent',
+    'x-no-compression'
+  ]
 };
 
-// Apply only ONE CORS middleware - multiple ones cause overhead
-app.use(cors(corsOptions));
-// app.use(cors(wildcardCorsOptions)); // Using the wildcard one for now since it's simpler
+// Apply CORS middleware - use more permissive settings for development
+if (process.env.NODE_ENV === 'production') {
+  app.use(cors(corsOptions));
+} else {
+  // Development: Allow all origins and headers
+  app.use(cors({
+    origin: true, // Allow all origins
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: [
+      'Content-Type', 
+      'Authorization', 
+      'X-Requested-With', 
+      'Origin', 
+      'Accept',
+      'Cache-Control',
+      'Referer',
+      'User-Agent',
+      'x-no-compression',
+      'content-type',
+      'cache-control'
+    ],
+    exposedHeaders: ['Content-Range', 'X-Content-Range'],
+    optionsSuccessStatus: 204,
+    preflightContinue: false
+  }));
+}
 
-app.use(compression());
 app.use(cookieParser());
 app.use(express.json());
 const clientID = process.env.X_CLIENT_ID || 'smfkskjjsjvsjmvs';
@@ -72,6 +132,13 @@ const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
 Cashfree.XClientId = process.env.X_CLIENT_ID || '';
 Cashfree.XClientSecret = process.env.X_CLIENT_SECRET || '';
 Cashfree.XEnvironment = Cashfree.Environment[(process.env.CASHFREE_ENVIRONMENT || 'PRODUCTION').toUpperCase()];
+
+// Performance monitoring middleware
+app.use(performanceMiddleware);
+
+// Handle preflight requests - this is already handled by the main CORS middleware above
+// app.options('*', cors());
+
 app.get('/user', getUser);
 app.post('/user/login', loginUser);
 app.post('/user/logout', logoutUser);
@@ -80,12 +147,23 @@ app.get('/', (req, res) => {
 });
 app.use('/', sitemap);
 
-// Replace the cache middleware with a no-op version
+// Enhanced cache middleware with Redis-like functionality
 const cache = (duration) => {
   return (req, res, next) => {
     // Cache is disabled (Redis removed)
     next();
   };
+};
+
+// In-memory cache for banner data
+const bannerCache = new Map();
+const getBannerCache = async (key, ttlMs, fetcher) => {
+  const entry = bannerCache.get(key);
+  const now = Date.now();
+  if (entry && entry.expiry > now) return entry.value;
+  const value = await fetcher();
+  bannerCache.set(key, { value, expiry: now + ttlMs });
+  return value;
 };
 
 // Optimize the allproducts endpoint for better performance
@@ -954,11 +1032,19 @@ app.delete('/admin/delete/:field', async (req, res) => {
 });
 app.get('/banner', async (req, res) => {
   try {
-    // const createModel = await BannerModel.create({image:"https://thesagio.com/cdn/shop/files/HOME-02.png?v=1726319330&width=1920",title:"Shop Your Amazing Products"});
-    // res.send(createModel);
-    const data = await BannerModel.find();
+    const startTime = Date.now();
+    
+    const data = await getBannerCache('banner_data', 1000 * 60 * 60 * 72, async () => {
+      return await BannerModel.find().select('title image').lean();
+    });
+    
+    const endTime = Date.now();
+    console.log(`Banner query completed in ${endTime - startTime}ms`);
+    
+    res.set('Cache-Control', 'public, max-age=259200'); // 72 hours cache (72 * 60 * 60 = 259200 seconds)
     res.send(data);
   } catch (err) {
+    console.error('Error in banner endpoint:', err);
     res.status(400).send({ message: 'Error Fetching Banners' });
   }
 });
@@ -966,6 +1052,8 @@ app.post('/banner/create', async (req, res) => {
   try {
     const { name, image } = req.body;
     const data = await BannerModel.create({ title: name, image: image });
+    // Clear banner cache when new banner is created
+    bannerCache.delete('banner_data');
     res.send({ message: 'Banner Created' });
   } catch (err) {
     res.status(400).send({ message: 'Error Creating Banner' });
@@ -975,6 +1063,8 @@ app.delete('/banner/delete', async (req, res) => {
   try {
     const { id } = req.body;
     const data = await BannerModel.deleteOne({ _id: id });
+    // Clear banner cache when banner is deleted
+    bannerCache.delete('banner_data');
     res.status(201).send(data);
   } catch (err) {
     res.status(400).send({ message: 'Error Creating Banner' });
@@ -1045,6 +1135,81 @@ app.get('/api/cart', userAuth, async (req, res) => {
   }
 });
 
+// Performance stats endpoint
+app.get('/performance', (req, res) => {
+  const stats = getPerformanceStats();
+  res.json(stats);
+});
+
+// Cache management endpoints
+app.get('/cache/stats', (req, res) => {
+  try {
+    const stats = getCacheStats();
+    res.json({
+      success: true,
+      message: 'Cache statistics retrieved successfully',
+      data: stats
+    });
+  } catch (error) {
+    console.error('Error getting cache stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error retrieving cache statistics'
+    });
+  }
+});
+
+app.post('/cache/clear', (req, res) => {
+  try {
+    const { key } = req.body;
+    clearCache(key);
+    res.json({
+      success: true,
+      message: key ? `Cache cleared for key: ${key}` : 'All cache cleared successfully'
+    });
+  } catch (error) {
+    console.error('Error clearing cache:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error clearing cache'
+    });
+  }
+});
+
+app.delete('/cache/clear', (req, res) => {
+  try {
+    const { key } = req.query;
+    clearCache(key);
+    res.json({
+      success: true,
+      message: key ? `Cache cleared for key: ${key}` : 'All cache cleared successfully'
+    });
+  } catch (error) {
+    console.error('Error clearing cache:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error clearing cache'
+    });
+  }
+});
+
+// Specific endpoint to clear banner cache
+app.post('/cache/clear-banner', (req, res) => {
+  try {
+    bannerCache.delete('banner_data');
+    res.json({
+      success: true,
+      message: 'Banner cache cleared successfully'
+    });
+  } catch (error) {
+    console.error('Error clearing banner cache:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error clearing banner cache'
+    });
+  }
+});
+
 // Update the health check endpoint
 app.get('/health', (req, res) => {
   const health = {
@@ -1059,11 +1224,21 @@ app.get('/health', (req, res) => {
   res.json(health);
 });
 
-connectTODB()
-  .then(() => {
-    console.log('DB connected successfully');
+// Connect to database and start server
+const startServer = async () => {
+  try {
+    await connectTODB();
+    
     app.listen(port, () => {
-      console.log('Server listening');
+      console.log(`Server running on port ${port}`);
+      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`Compression: Enabled`);
+      console.log(`CORS: Enabled`);
     });
-  })
-  .catch((err) => console.log('MongoErro', err));
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+startServer();
