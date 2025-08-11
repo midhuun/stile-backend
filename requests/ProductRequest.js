@@ -38,7 +38,7 @@ const getOrSetCache = async (key, ttlMs, fetcher) => {
 
 const productRequest = async (req, res) => {
   try {
-    const data = await getOrSetCache('home_products_v1', 1000 * 60 * 5, async () => {
+    const data = await getOrSetCache('home_products_v1', 1000 * 60 * 60 * 72, async () => {
       const subCategories = await SubCategoryModel.find()
         .select('name slug image')
         .populate({
