@@ -26,9 +26,10 @@ app.use(cookieParser());
 app.use(express.json());
 const SECRET = process.env.SECRET || '12@dmrwejfwf3rnwnrm';
 
-// Cache configuration - 72 hours (3 days)
-const CACHE_DURATION_MS = 1000 * 60 * 60 * 72; // 72 hours
-const CACHE_DURATION_SECONDS = 60 * 60 * 72; // 72 hours in seconds
+// Cache configuration - effectively never expire (1 year) for client caches
+// Using a long TTL for server in-memory cache and response headers
+const CACHE_DURATION_MS = 1000 * 60 * 60 * 24 * 365; // 1 year in ms
+const CACHE_DURATION_SECONDS = 60 * 60 * 24 * 365; // 1 year in seconds
 
 // simple in-memory cache to reduce DB load for home payload
 const cacheStore = new Map();
@@ -99,7 +100,8 @@ const productRequest = async (req, res) => {
     const endTime = Date.now();
     console.log(`Product query completed in ${endTime - startTime}ms`);
     
-    res.set('Cache-Control', `public, max-age=${CACHE_DURATION_SECONDS}`); // 72 hours cache
+    // Encourage long-term client/proxy caching
+    res.set('Cache-Control', `public, max-age=${CACHE_DURATION_SECONDS}, immutable`);
     res.status(200).send(data);
   } catch (err) {
     console.error('Error in productRequest:', err);

@@ -1034,14 +1034,16 @@ app.get('/banner', async (req, res) => {
   try {
     const startTime = Date.now();
     
-    const data = await getBannerCache('banner_data', 1000 * 60 * 60 * 72, async () => {
+    // Cache for a very long time (1 year)
+    const data = await getBannerCache('banner_data', 1000 * 60 * 60 * 24 * 365, async () => {
       return await BannerModel.find().select('title image').lean();
     });
     
     const endTime = Date.now();
     console.log(`Banner query completed in ${endTime - startTime}ms`);
     
-    res.set('Cache-Control', 'public, max-age=259200'); // 72 hours cache (72 * 60 * 60 = 259200 seconds)
+    // Long-lived client/proxy cache
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
     res.send(data);
   } catch (err) {
     console.error('Error in banner endpoint:', err);
